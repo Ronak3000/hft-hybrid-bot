@@ -1,0 +1,33 @@
+# Python Virtual Environments
+.venv/
+venv/
+env/
+
+# Python Cache
+*.__pycache__
+*.py[cod]
+*$py.class
+
+# C++ Build Artifacts
+backend_cpp/build/
+*.so
+*.pyd
+*.dll
+*.o
+CMakeCache.txt
+CMakeFiles/
+
+# Machine Learning Logs & Models
+tensorboard_logs/
+models/
+rl_trading/saved_models/
+*.zip
+*.pkl
+
+# Data & Output
+*.csv
+*.log
+
+# IDEs
+.vscode/
+.idea/
