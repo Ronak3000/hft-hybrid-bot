@@ -5,8 +5,6 @@ from gymnasium import spaces
 import numpy as np
 
 # 1. Calculate the absolute path to the C++ build directory
-# From: engine/rl_trading/envs/trading_env.py
-# To:   engine/backend_cpp/build
 build_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../backend_cpp/build'))
 
 # 2. Inject it into the Python path BEFORE importing the engine
@@ -15,17 +13,25 @@ if build_path not in sys.path:
 
 # 3. Now Python can see the .pyd binary!
 import hft_engine
+
 class TradingEnv(gym.Env):
     """
     Institutional-Grade Hybrid RL + Mathematical Market Making Environment.
     Features bare-metal C++ matching, O(1) circular volatility buffers, 
     dynamic flow-adjusted lot sizing, and hard inventory circuit breakers.
     """
-    def __init__(self, data_path="test_data.csv"):
+    def __init__(self, symbol="BTC/USDT", start_date=None, end_date=None,
+                 starting_cash=1000000.0, base_trade_size=0.5, 
+                 max_inventory=6.0, maker_fee=-0.0001, 
+                 penalty_factor=0.1, kappa=1.5):
         super(TradingEnv, self).__init__()
         
+        # Save metadata
+        self.symbol = symbol
+        self.start_date = start_date
+        self.end_date = end_date
+        
         # Action Space: [Gamma Modifier, Spread Multiplier]
-        # Spread multiplier up to 10.0 gives the AI a massive shield during real flash crashes
         self.action_space = spaces.Box(
             low=np.array([0.05, 0.5]), 
             high=np.array([0.5, 10.0]), 
@@ -37,15 +43,28 @@ class TradingEnv(gym.Env):
             low=-np.inf, high=np.inf, shape=(4,), dtype=np.float32
         )
         
+        # Initialize Bare-Metal Engine
         self.engine = hft_engine.OrderBook() 
+        
+        # Dynamically construct the data path based on the user's symbol
+        clean_symbol = symbol.replace("/", "").replace("-", "")
+        # Assumes your data is in a folder named 'data' at the root of the project
+        data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), f"../../../data/{clean_symbol}_ticks.csv"))
+        
+        # Fallback to test data if the specific asset file isn't found
+        if not os.path.exists(data_path):
+            print(f"[Warning] {data_path} not found. Falling back to test_data.csv")
+            data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../data/test_data.csv"))
+            
         self.engine.load_history_csv(data_path)
         
-        self.STARTING_CASH = 1000000.0
-        self.BASE_TRADE_SIZE = 0.5      
-        self.MAX_INVENTORY = 6.0        
-        self.KAPPA = 1.5                
-        self.PENALTY_FACTOR = 0.1       # Lowered to let pure Dollar PnL drive behavior 
-        self.MAKER_FEE = -0.0001        
+        # --- DYNAMIC MARKET PARAMETERS (From UI) ---
+        self.STARTING_CASH = starting_cash
+        self.BASE_TRADE_SIZE = base_trade_size      
+        self.MAX_INVENTORY = max_inventory        
+        self.KAPPA = kappa                
+        self.PENALTY_FACTOR = penalty_factor       
+        self.MAKER_FEE = maker_fee        
         
         self.window_size = 100
         self.price_buffer = np.zeros(self.window_size, dtype=np.float32)
@@ -104,7 +123,6 @@ class TradingEnv(gym.Env):
         )
 
         # --- THE PASSIVE MAKER CLAMP ---
-        # Prevent variance explosions from making the AI cross the spread and pay market taker fees
         bid_price = min(quotes.bid_price, self.mid_price - 0.5)
         ask_price = max(quotes.ask_price, self.mid_price + 0.5)
         

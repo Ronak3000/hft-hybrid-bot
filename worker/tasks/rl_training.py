@@ -1,31 +1,24 @@
+import sys
 import os
 import time
 from celery import shared_task
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
-import gymnasium as gym
-from gymnasium import spaces
-import numpy as np
 
-# ---------------------------------------------------------
-# 1. TELEMETRY CALLBACK
-# ---------------------------------------------------------
+# Add the root directory to sys.path so the worker can find 'engine'
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+from engine.rl_trading.envs.trading_env import TradingEnv
+
 class CeleryProgressCallback(BaseCallback):
-    """
-    Hooks into the PPO training loop to send live progress updates 
-    to Redis, which FastAPI then streams to the React UI.
-    """
+    """Hooks into PPO to send live progress updates to Redis."""
     def __init__(self, celery_task, total_timesteps, verbose=0):
         super().__init__(verbose)
         self.celery_task = celery_task
         self.total_timesteps = total_timesteps
 
     def _on_step(self) -> bool:
-        # Push an update to Redis every 1024 steps to avoid choking the queue
         if self.num_timesteps % 1024 == 0:
             progress_pct = round((self.num_timesteps / self.total_timesteps) * 100, 2)
-            
-            # This updates the job state in Redis!
             self.celery_task.update_state(
                 state='PROGRESS',
                 meta={
@@ -36,44 +29,19 @@ class CeleryProgressCallback(BaseCallback):
             )
         return True
 
-
-# ---------------------------------------------------------
-# 2. PLACEHOLDER ENVIRONMENT (Swap with your C++ Pybind Env)
-# ---------------------------------------------------------
-class DummyTradingEnv(gym.Env):
-    """A minimal viable environment to test the Celery pipeline."""
-    def __init__(self):
-        super().__init__()
-        self.action_space = spaces.Discrete(3) # Hold, Buy, Sell
-        self.observation_space = spaces.Box(low=-1, high=1, shape=(5,), dtype=np.float32)
-        self.step_count = 0
-
-    def step(self, action):
-        self.step_count += 1
-        reward = np.random.normal(0, 1)
-        done = self.step_count >= 1000
-        return self.observation_space.sample(), reward, done, False, {}
-
-    def reset(self, seed=None, options=None):
-        self.step_count = 0
-        return self.observation_space.sample(), {}
-
-
-# ---------------------------------------------------------
-# 3. THE CELERY TASK
-# ---------------------------------------------------------
 @shared_task(bind=True, name="worker.tasks.rl_training.train_ppo_model")
-def train_ppo_model(self, symbol, start_date, end_date, epochs, learning_rate, entropy_coef):
-    """
-    The background worker function. 
-    'bind=True' gives us access to 'self' to update the Celery task state.
-    """
+def train_ppo_model(self, symbol, start_date, end_date, epochs, learning_rate, entropy_coef,
+                    starting_cash, base_trade_size, max_inventory, maker_fee, penalty_factor, kappa):
     try:
-        print(f"[Worker] Starting training job for {symbol}. LR: {learning_rate}")
+        print(f"[Worker] Allocating C++ LOB for {symbol} | Base Size: {base_trade_size} | Penalty: {penalty_factor}")
         
-        # 1. Initialize Environment
-        # IN PRODUCTION: env = YourCppTradingEnv(symbol, start_date, end_date)
-        env = DummyTradingEnv()
+        # 1. Initialize the TRUE Environment with dynamic market parameters
+        env = TradingEnv(
+            symbol=symbol, start_date=start_date, end_date=end_date,
+            starting_cash=starting_cash, base_trade_size=base_trade_size,
+            max_inventory=max_inventory, maker_fee=maker_fee,
+            penalty_factor=penalty_factor, kappa=kappa
+        )
 
         # 2. Initialize PPO Agent
         model = PPO(
@@ -84,10 +52,11 @@ def train_ppo_model(self, symbol, start_date, end_date, epochs, learning_rate, e
             verbose=0
         )
 
-        # 3. Train with real-time telemetry
-        total_steps = epochs * 1000 # Example math
+        # 3. Train with real-time telemetry connected to Redis
+        total_steps = epochs * 5000 
         progress_callback = CeleryProgressCallback(self, total_timesteps=total_steps)
         
+        print(f"[Worker] Initiating PPO training loop for {epochs} epochs...")
         model.learn(total_timesteps=total_steps, callback=progress_callback)
 
         # 4. Save the compiled model weights
@@ -98,12 +67,11 @@ def train_ppo_model(self, symbol, start_date, end_date, epochs, learning_rate, e
         save_path = os.path.join(save_dir, model_filename)
         model.save(save_path)
 
-        print(f"[Worker] Job complete. Model saved to {save_path}")
+        print(f"[Worker] Job complete. C++ memory freed. Model saved to {save_path}")
 
         return {
             "status": "success",
             "model_file": model_filename,
-            "final_reward": "..." # Extract from logger if needed
         }
 
     except Exception as e:
