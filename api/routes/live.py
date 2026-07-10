@@ -86,3 +86,10 @@ async def websocket_endpoint(websocket: WebSocket):
             print(f"[Engine] Received command: {data}")
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+@router.on_event("startup")
+async def start_simulated_engine():
+    """
+    Spawns the HFT engine simulator in the background the moment FastAPI boots.
+    """
+    asyncio.create_task(hft_engine_simulator())

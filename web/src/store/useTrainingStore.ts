@@ -52,7 +52,9 @@ export const useTrainingStore = create<TrainingState>((set) => ({
   progress: 0,
   logs: [],
 
+  // THIS IS THE CRITICAL LINE: It must merge the new params with the old ones
   setParams: (newParams) => set((state) => ({ params: { ...state.params, ...newParams } })),
+  
   setJobId: (id) => set({ jobId: id }),
   setStatus: (status) => set({ status }),
   setProgress: (progress) => set({ progress }),

@@ -1,8 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BrainCircuit, Play, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
+import { BrainCircuit, Play, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronUp, Settings2, Calendar } from 'lucide-react';
 import { useTrainingStore } from '@/store/useTrainingStore';
+
+// Strict Binance Pairs
+const SUPPORTED_ASSETS = [
+  'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 
+  'BNB/USDT', 'XRP/USDT', 'ADA/USDT'
+];
 
 export default function TrainingPage() {
   const { 
@@ -15,7 +21,20 @@ export default function TrainingPage() {
   
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Quick Date Selectors
+  const setQuickDate = (days: number) => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - days);
+    
+    setParams({
+      start_date: start.toISOString().split('T')[0],
+      end_date: end.toISOString().split('T')[0]
+    });
+  };
+
   const handleStartTraining = async () => {
+    console.log("PAYLOAD BEING SENT:", params)
     resetJob();
     setStatus('PENDING');
     addLog('Dispatching job to cluster...');
@@ -46,8 +65,6 @@ export default function TrainingPage() {
 
         if (data.state === 'PROGRESS') {
           setStatus('PROGRESS');
-          
-          // DEFENSIVE CHECK: Only update if the payload actually contains the percentage
           if (data.progress?.progress_percent !== undefined) {
             setProgress(data.progress.progress_percent);
           }
@@ -62,7 +79,6 @@ export default function TrainingPage() {
           addLog(`Job failed: ${data.error}`);
         }
       } catch (error) {
-        // Suppress transient network fetch errors so they don't crash the UI
         console.debug("Polling transient error:", error);
       }
     }, 1500);
@@ -87,29 +103,59 @@ export default function TrainingPage() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
             <h2 className="text-sm font-semibold text-zinc-400 mb-4 uppercase tracking-wider">Hyperparameters</h2>
             
-            <div className="space-y-4">
+            <div className="space-y-5">
+              
+              {/* Binance Asset Dropdown */}
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">Asset Symbol</label>
-                <input 
-                  type="text" 
+                <label className="block text-xs text-zinc-500 mb-1">Target Asset (Binance)</label>
+                <select 
                   value={params.symbol}
                   onChange={e => setParams({ symbol: e.target.value })}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-                />
+                >
+                  {SUPPORTED_ASSETS.map(asset => (
+                    <option key={asset} value={asset}>{asset}</option>
+                  ))}
+                </select>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-1">Start Date</label>
-                  <input type="date" value={params.start_date} onChange={e => setParams({ start_date: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm" />
+              {/* Enhanced Date Selector */}
+              <div className="space-y-2 pt-1">
+                <div className="flex justify-between items-end">
+                  <label className="block text-xs text-zinc-500 flex items-center gap-1">
+                    <Calendar size={14} /> Historical Data Range
+                  </label>
+                  <div className="flex gap-1">
+                    <button onClick={() => setQuickDate(7)} className="text-[10px] px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300 transition-colors">1W</button>
+                    <button onClick={() => setQuickDate(30)} className="text-[10px] px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300 transition-colors">1M</button>
+                    <button onClick={() => setQuickDate(90)} className="text-[10px] px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300 transition-colors">3M</button>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-1">End Date</label>
-                  <input type="date" value={params.end_date} onChange={e => setParams({ end_date: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] text-zinc-600 mb-1">Start Date</label>
+                    <input 
+                      type="date" 
+                      value={params.start_date} 
+                      max={params.end_date}
+                      onChange={e => setParams({ start_date: e.target.value })} 
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-2 py-2 text-xs focus:outline-none focus:border-emerald-500" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-zinc-600 mb-1">End Date</label>
+                    <input 
+                      type="date" 
+                      value={params.end_date} 
+                      max={new Date().toISOString().split('T')[0]} // Cannot fetch future data
+                      onChange={e => setParams({ end_date: e.target.value })} 
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-2 py-2 text-xs focus:outline-none focus:border-emerald-500" 
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-4 pt-1">
                 <div>
                   <label className="block text-xs text-zinc-500 mb-1">Epochs</label>
                   <input type="number" value={params.epochs} onChange={e => setParams({ epochs: Number(e.target.value) })} className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm font-mono" />

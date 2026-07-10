@@ -1,16 +1,18 @@
 import sys
 import os
 import time
+import requests
 from celery import shared_task
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
-# Add the root directory to sys.path so the worker can find 'engine'
+# Add the root directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from engine.rl_trading.envs.trading_env import TradingEnv
+from worker.utils.data_downloader import download_binance_data # <-- NEW IMPORT
 
 class CeleryProgressCallback(BaseCallback):
-    """Hooks into PPO to send live progress updates to Redis."""
+    # ... (Keep your existing callback exactly the same) ...
     def __init__(self, celery_task, total_timesteps, verbose=0):
         super().__init__(verbose)
         self.celery_task = celery_task
@@ -33,9 +35,21 @@ class CeleryProgressCallback(BaseCallback):
 def train_ppo_model(self, symbol, start_date, end_date, epochs, learning_rate, entropy_coef,
                     starting_cash, base_trade_size, max_inventory, maker_fee, penalty_factor, kappa):
     try:
-        print(f"[Worker] Allocating C++ LOB for {symbol} | Base Size: {base_trade_size} | Penalty: {penalty_factor}")
+        print(f"[Worker] Received job for {symbol} ({start_date} to {end_date})")
         
-        # 1. Initialize the TRUE Environment with dynamic market parameters
+        # 1. Download Data Dynamically
+        clean_symbol = symbol.replace("/", "").replace("-", "")
+        data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../data'))
+        os.makedirs(data_dir, exist_ok=True)
+        
+        # REMOVED '_ticks'
+        csv_filepath = os.path.join(data_dir, f"{clean_symbol}.csv")
+        
+        self.update_state(state='PENDING', meta={'status': 'Downloading historical data...'})
+        download_binance_data(symbol, start_date, end_date, csv_filepath)
+
+        # 2. Initialize the TRUE Environment with dynamic market parameters
+        print(f"[Worker] Allocating C++ LOB. Base Size: {base_trade_size} | Penalty: {penalty_factor}")
         env = TradingEnv(
             symbol=symbol, start_date=start_date, end_date=end_date,
             starting_cash=starting_cash, base_trade_size=base_trade_size,
@@ -43,31 +57,36 @@ def train_ppo_model(self, symbol, start_date, end_date, epochs, learning_rate, e
             penalty_factor=penalty_factor, kappa=kappa
         )
 
-        # 2. Initialize PPO Agent
-        model = PPO(
-            "MlpPolicy", 
-            env, 
-            learning_rate=learning_rate,
-            ent_coef=entropy_coef,
-            verbose=0
-        )
+        # 3. Initialize PPO Agent
+        model = PPO("MlpPolicy", env, learning_rate=learning_rate, ent_coef=entropy_coef, verbose=0)
 
-        # 3. Train with real-time telemetry connected to Redis
+        # 4. Train with real-time telemetry connected to Redis
         total_steps = epochs * 5000 
         progress_callback = CeleryProgressCallback(self, total_timesteps=total_steps)
-        
-        print(f"[Worker] Initiating PPO training loop for {epochs} epochs...")
         model.learn(total_timesteps=total_steps, callback=progress_callback)
 
-        # 4. Save the compiled model weights
+        # 5. Save the compiled model weights
         save_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../engine/saved_models'))
         os.makedirs(save_dir, exist_ok=True)
-        
-        model_filename = f"ppo_{symbol.replace('/', '')}_{int(time.time())}.zip"
+        model_filename = f"ppo_{clean_symbol}_{int(time.time())}.zip"
         save_path = os.path.join(save_dir, model_filename)
         model.save(save_path)
 
-        print(f"[Worker] Job complete. C++ memory freed. Model saved to {save_path}")
+        # 6. Push Metadata to Supabase DB via internal API call
+        print("[Worker] Registering model in database...")
+        db_payload = {
+            "symbol": symbol.upper(),
+            "start_date": start_date,
+            "end_date": end_date,
+            "model_filename": model_filename,
+            "hyperparameters": {
+                "epochs": epochs, "learning_rate": learning_rate, "entropy_coef": entropy_coef,
+                "kappa": kappa, "base_trade_size": base_trade_size
+            }
+        }
+        requests.post("http://localhost:8000/api/models/register", json=db_payload)
+
+        print(f"[Worker] Job complete. Model saved to {save_path}")
 
         return {
             "status": "success",

@@ -48,9 +48,9 @@ class TradingEnv(gym.Env):
         
         # Dynamically construct the data path based on the user's symbol
         clean_symbol = symbol.replace("/", "").replace("-", "")
-        # Assumes your data is in a folder named 'data' at the root of the project
-        data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), f"../../../data/{clean_symbol}_ticks.csv"))
         
+        # REMOVED '_ticks'
+        data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), f"../../../data/{clean_symbol}.csv"))
         # Fallback to test data if the specific asset file isn't found
         if not os.path.exists(data_path):
             print(f"[Warning] {data_path} not found. Falling back to test_data.csv")
