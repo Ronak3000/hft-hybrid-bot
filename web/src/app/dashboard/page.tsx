@@ -1,13 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Activity, Database, Calendar, Play, AlertTriangle, ShieldCheck, Server, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Activity, Database, Play, AlertTriangle, ShieldCheck, Server, RefreshCw } from 'lucide-react';
+// NEW V5 IMPORTS: Added AreaSeries and createSeriesMarkers
+import { createChart, ColorType, Time, AreaSeries, createSeriesMarkers } from 'lightweight-charts';
 
-// Common Binance HFT Pairs
-const SUPPORTED_ASSETS = [
-  'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 
-  'BNB/USDT', 'XRP/USDT', 'ADA/USDT'
-];
+const SUPPORTED_ASSETS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 'ADA/USDT'];
 
 interface TrainedModel {
   id: string;
@@ -15,23 +13,27 @@ interface TrainedModel {
   start_date: string;
   end_date: string;
   created_at: string;
+  hyperparameters?: {
+    max_inventory?: number;
+    base_trade_size?: number;
+    kappa?: number;
+    [key: string]: any;
+  };
 }
 
 export default function LiveDashboardPage() {
-  // Configuration State
   const [symbol, setSymbol] = useState<string>('BTC/USDT');
-  const [startDate, setStartDate] = useState<string>(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]); // Default to 7 days ago
-  const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0]); // Default to today
-  
-  // Database State
   const [availableModels, setAvailableModels] = useState<TrainedModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [isLoadingModels, setIsLoadingModels] = useState<boolean>(false);
-  
-  // Engine State
   const [engineStatus, setEngineStatus] = useState<'OFFLINE' | 'BOOTING' | 'LIVE'>('OFFLINE');
+  
+  const [liveData, setLiveData] = useState({ price: 0, netWorth: 1000000, inventory: 0 });
+  const [liveLogs, setLiveLogs] = useState<string[]>([]);
+  
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
 
-  // Dynamic Model Fetching
   useEffect(() => {
     const fetchModels = async () => {
       setIsLoadingModels(true);
@@ -42,9 +44,7 @@ export default function LiveDashboardPage() {
         
         if (data.status === 'success') {
           setAvailableModels(data.models);
-          // Auto-select the most recent model if available
           if (data.models.length > 0) {
-            // Sort by created_at descending
             const sorted = data.models.sort((a: TrainedModel, b: TrainedModel) => 
               new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             );
@@ -54,26 +54,134 @@ export default function LiveDashboardPage() {
           }
         }
       } catch (error) {
-        console.error("Failed to fetch models from Supabase:", error);
         setAvailableModels([]);
         setSelectedModel('');
       } finally {
         setIsLoadingModels(false);
       }
     };
-
     fetchModels();
-  }, [symbol]); // Re-runs every time the user changes the symbol
+  }, [symbol]);
+
+  // V5 Hardware-Accelerated Chart & WebSocket Engine
+  useEffect(() => {
+    if (engineStatus !== 'LIVE' || !chartContainerRef.current) return;
+
+    const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: '#0D1117' }, 
+        textColor: '#A1A1AA',
+      },
+      grid: {
+        vertLines: { color: '#1F2937' },
+        horzLines: { color: '#1F2937' },
+      },
+      timeScale: {
+        timeVisible: true,
+        secondsVisible: true,
+        borderColor: '#1F2937',
+        rightOffset: 15,
+      },
+      rightPriceScale: {
+        borderColor: '#1F2937',
+        autoScale: true,
+      }
+    });
+
+    // V5 SYNTAX FIX: Inject AreaSeries definition directly into addSeries
+    const series = chart.addSeries(AreaSeries, {
+      lineColor: '#3B82F6',
+      topColor: 'rgba(59, 130, 246, 0.4)',
+      bottomColor: 'rgba(59, 130, 246, 0.0)',
+      lineWidth: 2,
+      priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+    });
+
+    // V5 SYNTAX FIX: Initialize the Series Markers Plugin 
+    const markersPlugin = createSeriesMarkers(series, []);
+    let currentMarkers: any[] = [];
+
+    const handleResize = () => {
+      if (chartContainerRef.current) {
+        chart.applyOptions({ width: chartContainerRef.current.clientWidth, height: chartContainerRef.current.clientHeight });
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    const cleanSymbol = symbol.replace('/', '').replace('-', '').toLowerCase();
+    const ws = new WebSocket(`ws://localhost:8000/ws/live/${cleanSymbol}`);
+
+    ws.onopen = () => {
+      setLiveLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] System: Connected to matching engine WS stream.`]);
+      setLiveLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Engine: Loaded Avellaneda-Stoikov parameters from ${selectedModel}`]);
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      const timeInSeconds = Math.floor(data.timestamp / 1000) as Time;
+      
+      setLiveData({
+        price: data.mid_price,
+        netWorth: data.net_worth,
+        inventory: data.inventory_btc
+      });
+
+      series.update({ time: timeInSeconds, value: data.mid_price });
+
+      if (data.latest_executions && data.latest_executions.length > 0) {
+        data.latest_executions.forEach((exec: any) => {
+           setLiveLogs(prev => {
+             const time = new Date().toLocaleTimeString();
+             const newLogs = [...prev, `[${time}] Market: Executed ${exec.side} ${exec.size} @ ${exec.price} (PnL: $${exec.realized_pnl})`];
+             return newLogs.slice(-30); 
+           });
+
+           currentMarkers.push({
+             time: timeInSeconds,
+             position: exec.side === 'BUY' ? 'belowBar' : 'aboveBar',
+             color: exec.side === 'BUY' ? '#10B981' : '#EF4444',
+             shape: exec.side === 'BUY' ? 'arrowUp' : 'arrowDown',
+             text: exec.side,
+           });
+        });
+
+        // Ensure markers are unique by time and strictly sorted (required by TradingView)
+        const uniqueMarkers = Array.from(new Map(currentMarkers.map(m => [m.time, m])).values());
+        uniqueMarkers.sort((a, b) => (a.time as number) - (b.time as number));
+        
+        // V5 SYNTAX FIX: Update markers using the new plugin API
+        markersPlugin.setMarkers(uniqueMarkers);
+      }
+    };
+
+    ws.onclose = () => {
+      setLiveLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] System: Connection to engine closed.`]);
+      setEngineStatus('OFFLINE');
+    };
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      ws.close();
+      chart.remove();
+    };
+  }, [engineStatus, selectedModel]);
+
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [liveLogs]);
 
   const handleInitializeEngine = () => {
     if (!selectedModel) return;
     setEngineStatus('BOOTING');
-    
-    // Simulate connection to the WebSockets we stubbed out earlier
+    setLiveLogs([]); 
     setTimeout(() => {
       setEngineStatus('LIVE');
-    }, 1500);
+    }, 1000);
   };
+
+  const activeModelDetails = availableModels.find(m => m.model_filename === selectedModel);
+  const currentMaxInventory = activeModelDetails?.hyperparameters?.max_inventory || 6.0;
+  const currentBaseTrade = activeModelDetails?.hyperparameters?.base_trade_size || 0.5;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 p-6 font-sans">
@@ -86,8 +194,7 @@ export default function LiveDashboardPage() {
           <p className="text-sm text-zinc-400 mt-1">Deploy trained PPO agents against real-time market microstructure.</p>
         </div>
         
-        {/* Global Engine Status */}
-        <div className="flex items-center gap-3 bg-zinc-900 px-4 py-2 rounded-lg border border-zinc-800">
+        <div className="flex items-center gap-3 bg-zinc-900 px-4 py-2 rounded-lg border border-zinc-800 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
           <Server size={16} className={engineStatus === 'LIVE' ? 'text-blue-500' : 'text-zinc-500'} />
           <span className="text-sm font-mono font-medium">
             {engineStatus === 'OFFLINE' && <span className="text-zinc-400">ENGINE OFFLINE</span>}
@@ -99,15 +206,13 @@ export default function LiveDashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
-        {/* Left Column: Command & Control */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-lg">
             <h2 className="text-sm font-semibold text-zinc-400 mb-4 uppercase tracking-wider flex items-center gap-2">
               <Database size={16} /> Strategy Deployment
             </h2>
             
             <div className="space-y-5">
-              {/* Asset Selector */}
               <div>
                 <label className="block text-xs text-zinc-500 mb-1">Target Asset</label>
                 <select 
@@ -122,7 +227,6 @@ export default function LiveDashboardPage() {
                 </select>
               </div>
 
-              {/* Model Selector (Filtered dynamically via Supabase) */}
               <div>
                 <label className="block text-xs text-zinc-500 mb-1 flex justify-between">
                   <span>Compiled Brain (.zip)</span>
@@ -139,7 +243,7 @@ export default function LiveDashboardPage() {
                   ) : (
                     availableModels.map(model => (
                       <option key={model.id} value={model.model_filename}>
-                        {model.model_filename} (Trained: {new Date(model.created_at).toLocaleDateString()})
+                        {model.model_filename}
                       </option>
                     ))
                   )}
@@ -151,24 +255,6 @@ export default function LiveDashboardPage() {
                 )}
               </div>
 
-              {/* Data Range Selector (For initializing the Live Chart / Lookback) */}
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-800">
-                <div className="col-span-2">
-                  <label className="block text-xs text-zinc-500 mb-1 flex items-center gap-1">
-                    <Calendar size={12} /> Chart Lookback Period
-                  </label>
-                </div>
-                <div>
-                  <label className="block text-[10px] text-zinc-600 mb-1">From</label>
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} disabled={engineStatus !== 'OFFLINE'} className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-2 py-1.5 text-xs disabled:opacity-50" />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-zinc-600 mb-1">To</label>
-                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} disabled={engineStatus !== 'OFFLINE'} className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-2 py-1.5 text-xs disabled:opacity-50" />
-                </div>
-              </div>
-
-              {/* Action Button */}
               <div className="pt-4">
                 {engineStatus === 'OFFLINE' ? (
                   <button 
@@ -189,82 +275,65 @@ export default function LiveDashboardPage() {
               </div>
             </div>
           </div>
-          
-          {/* Active Configuration Readout */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-lg">
              <h2 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
               <ShieldCheck size={16} /> Security Rules
             </h2>
             <div className="space-y-2 text-xs font-mono text-zinc-500">
               <div className="flex justify-between"><span>Max Drawdown:</span> <span className="text-zinc-300">-20.0%</span></div>
-              <div className="flex justify-between"><span>Inventory Limit:</span> <span className="text-zinc-300">±6.0 BTC</span></div>
-              <div className="flex justify-between"><span>Order Type:</span> <span className="text-emerald-400">MAKER ONLY</span></div>
+              <div className="flex justify-between"><span>Inventory Limit:</span> <span className="text-emerald-400">±{currentMaxInventory.toFixed(1)}</span></div>
+              <div className="flex justify-between"><span>Base Order Size:</span> <span className="text-blue-400">{currentBaseTrade.toFixed(2)}</span></div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: The Trading View */}
         <div className="lg:col-span-3">
-          <div className="bg-[#0D1117] border border-zinc-800 rounded-xl h-[700px] flex flex-col relative overflow-hidden">
+          <div className="bg-[#0D1117] border border-zinc-800 rounded-xl h-[700px] flex flex-col relative overflow-hidden shadow-2xl">
             
-            {/* Chart Header */}
-            <div className="bg-zinc-900 px-4 py-3 border-b border-zinc-800 flex justify-between items-center z-10">
+            <div className="bg-zinc-900 px-4 py-3 border-b border-zinc-800 flex justify-between items-center z-10 shadow-sm">
               <div className="flex items-center gap-4">
-                <span className="font-bold">{symbol}</span>
-                <span className="text-xs px-2 py-1 bg-zinc-800 rounded text-zinc-300">100ms Tick</span>
+                <span className="font-bold text-lg">{symbol}</span>
+                <span className="text-sm px-2 py-1 bg-zinc-800 rounded text-zinc-200 font-mono">
+                  {engineStatus === 'LIVE' ? `$${liveData.price.toLocaleString(undefined, {minimumFractionDigits: 2})}` : '---'}
+                </span>
               </div>
-              <div className="flex gap-4 text-xs font-mono">
+              <div className="flex gap-6 text-xs font-mono">
                 <div className="flex flex-col items-end">
                   <span className="text-zinc-500">Unrealized PnL</span>
-                  <span className={engineStatus === 'LIVE' ? "text-emerald-400" : "text-zinc-600"}>
-                    {engineStatus === 'LIVE' ? "+$142.50" : "$0.00"}
+                  <span className={engineStatus === 'LIVE' ? (liveData.netWorth >= 1000000 ? "text-emerald-400 text-sm" : "text-red-400 text-sm") : "text-zinc-600 text-sm"}>
+                    {engineStatus === 'LIVE' ? `$${(liveData.netWorth - 1000000).toLocaleString(undefined, {minimumFractionDigits: 2})}` : "$0.00"}
                   </span>
                 </div>
                 <div className="flex flex-col items-end">
-                  <span className="text-zinc-500">Inventory</span>
-                  <span className={engineStatus === 'LIVE' ? "text-blue-400" : "text-zinc-600"}>
-                    {engineStatus === 'LIVE' ? "+1.5 BTC" : "0.00 BTC"}
+                  <span className="text-zinc-500">Net Inventory</span>
+                  <span className={engineStatus === 'LIVE' ? "text-blue-400 text-sm font-bold" : "text-zinc-600 text-sm"}>
+                    {engineStatus === 'LIVE' ? `${liveData.inventory > 0 ? '+' : ''}${liveData.inventory.toFixed(2)}` : "0.00"}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Chart Body Placeholder */}
-            <div className="flex-1 flex items-center justify-center relative">
-              {engineStatus === 'OFFLINE' ? (
-                <div className="text-center text-zinc-600">
+            <div className="flex-1 relative w-full h-full">
+              {engineStatus === 'OFFLINE' && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-zinc-600 bg-[#0D1117]">
                   <Activity size={48} className="mx-auto mb-4 opacity-20" />
                   <p>Awaiting engine initialization...</p>
                   <p className="text-xs mt-2 font-mono">Select a trained model and click Deploy Strategy.</p>
                 </div>
-              ) : (
-                <div className="absolute inset-0 p-4">
-                  {/* Grid background to simulate a chart area */}
-                  <div className="w-full h-full border border-zinc-800/50 rounded flex flex-col justify-end p-4 relative"
-                       style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-                    
-                    {/* Simulated live chart line connecting */}
-                    <div className="absolute left-0 bottom-[40%] w-[60%] h-0.5 bg-zinc-700"></div>
-                    <div className="absolute left-[60%] bottom-[40%] w-[40%] h-0.5 bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
-                    
-                    {/* Pulsing indicator */}
-                    <div className="absolute right-4 bottom-[calc(40%-3px)] w-2 h-2 rounded-full bg-blue-400 animate-ping"></div>
-                    <div className="absolute right-4 bottom-[calc(40%-3px)] w-2 h-2 rounded-full bg-blue-500"></div>
-                  </div>
-                </div>
               )}
+              <div ref={chartContainerRef} className="absolute inset-0 w-full h-full" />
             </div>
             
-            {/* Live Order Book Terminal Log */}
-            <div className="h-48 bg-zinc-950 border-t border-zinc-800 p-3 font-mono text-xs overflow-y-auto">
+            <div className="h-56 bg-[#0a0a0a] border-t border-zinc-800 p-4 font-mono text-xs overflow-y-auto shadow-inner">
                {engineStatus === 'LIVE' ? (
-                 <div className="space-y-1">
-                   <p className="text-zinc-500">[10:42:01.105] System: Connected to matching engine WS stream.</p>
-                   <p className="text-zinc-500">[10:42:01.120] Engine: Loading Avellaneda-Stoikov parameters...</p>
-                   <p className="text-zinc-500">[10:42:01.125] Engine: Loaded weights from {selectedModel}</p>
-                   <p className="text-blue-400">[10:42:02.001] AI Action: Calculated spread 4.5. Placed Buy @ 62498.50, Sell @ 62503.00</p>
-                   <p className="text-emerald-400">[10:42:03.450] Market: Executed BUY 0.5 BTC @ 62498.50 (Maker Fee: -$0.00)</p>
-                   <p className="text-blue-400">[10:42:03.452] AI Action: Inventory shifted. Adjusting reservation price...</p>
+                 <div className="space-y-1.5">
+                   {liveLogs.map((log, index) => (
+                     <p key={index} className={log.includes('Market: Executed BUY') ? 'text-emerald-400' : log.includes('Market: Executed SELL') ? 'text-red-400' : 'text-zinc-400'}>
+                       {log}
+                     </p>
+                   ))}
+                   <div ref={terminalEndRef} />
                  </div>
                ) : (
                  <p className="text-zinc-700 italic">Order routing engine disconnected...</p>

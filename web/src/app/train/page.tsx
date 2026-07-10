@@ -55,7 +55,7 @@ export default function TrainingPage() {
     }
   };
 
-  useEffect(() => {
+useEffect(() => {
     if (!jobId || status === 'SUCCESS' || status === 'FAILURE') return;
 
     const pollInterval = setInterval(async () => {
@@ -66,15 +66,18 @@ export default function TrainingPage() {
         if (data.state === 'PROGRESS') {
           setStatus('PROGRESS');
           if (data.progress?.progress_percent !== undefined) {
-            setProgress(data.progress.progress_percent);
+            // Clamp progress to 100% maximum
+            setProgress(Math.min(100, data.progress.progress_percent));
           }
         } 
         else if (data.state === 'SUCCESS') {
+          clearInterval(pollInterval); // INSTANT HALT: Prevent log spam
           setStatus('SUCCESS');
           setProgress(100);
           addLog(`Training complete. Model saved as: ${data.result?.model_file || 'unknown.zip'}`);
         } 
         else if (data.state === 'FAILURE') {
+          clearInterval(pollInterval); // INSTANT HALT
           setStatus('FAILURE');
           addLog(`Job failed: ${data.error}`);
         }
@@ -85,7 +88,6 @@ export default function TrainingPage() {
 
     return () => clearInterval(pollInterval);
   }, [jobId, status, setStatus, setProgress, addLog]);
-
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 p-6 font-sans">
       <header className="mb-8 border-b border-zinc-800 pb-4">

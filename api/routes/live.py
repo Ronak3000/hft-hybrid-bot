@@ -1,95 +1,78 @@
-import asyncio
 import json
 import random
 from datetime import datetime
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+import websockets
 
 router = APIRouter(prefix="/ws", tags=["Live Trading"])
 
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: list[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-        print(f"[Engine] Client connected. Total active: {len(self.active_connections)}")
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-        print("[Engine] Client disconnected.")
-
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            try:
-                await connection.send_text(message)
-            except RuntimeError:
-                pass
-
-manager = ConnectionManager()
-
-async def hft_engine_simulator():
+@router.websocket("/live/{symbol}")
+async def live_trading_stream(websocket: WebSocket, symbol: str):
     """
-    Simulates the high-frequency data stream from the C++ matching engine.
+    Proxies real-time tick data directly from Binance to the Next.js frontend.
     """
-    price = 62500.0
-    cash = 10000.0
+    await websocket.accept()
+    
+    # Binance requires lowercase symbols (e.g., 'btcusdt')
+    binance_symbol = symbol.lower()
+    binance_ws_url = f"wss://stream.binance.com:9443/ws/{binance_symbol}@trade"
+    
+    print(f"[Engine] Connecting to Live Binance Stream: {binance_ws_url}")
+    
+    # State variables for the mock AI execution (now hooked to REAL prices)
+    cash = 1000000.0
     inventory = 0.0
-
-    while True:
-        await asyncio.sleep(0.1) # 100ms throttle
-        
-        if not manager.active_connections:
-            continue
-
-        price += random.choice([-2.0, -1.0, 0.0, 1.0, 2.0])
-        
-        executions = []
-        if random.random() < 0.40:
-            side = random.choice(["BUY", "SELL"])
-            size = 0.5
-            pnl = random.uniform(-1.0, 3.5) 
-            
-            if side == "BUY":
-                inventory += size
-            else:
-                inventory -= size
-                
-            cash += pnl
-            
-            executions.append({
-                "time": datetime.utcnow().isoformat() + "Z",
-                "side": side,
-                "price": round(price, 2),
-                "size": size,
-                "realized_pnl": round(pnl, 2)
-            })
-
-        net_worth = cash + (inventory * price)
-
-        payload = {
-            "timestamp": int(datetime.utcnow().timestamp() * 1000),
-            "mid_price": round(price, 2),
-            "net_worth": round(net_worth, 2),
-            "inventory_btc": round(inventory, 2),
-            "latest_executions": executions
-        }
-
-        await manager.broadcast(json.dumps(payload))
-
-@router.websocket("/live")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+    
     try:
-        while True:
-            data = await websocket.receive_text()
-            print(f"[Engine] Received command: {data}")
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        # Open a direct connection to Binance
+        async with websockets.connect(binance_ws_url) as binance_ws:
+            while True:
+                # 1. Receive the real-time trade tick from Binance
+                msg = await binance_ws.recv()
+                data = json.loads(msg)
+                
+                # Binance @trade payload gives us "p" (price) and "T" (timestamp)
+                real_price = float(data["p"])
+                timestamp_ms = data["T"]
+                
+                # 2. Simulate our AI taking positions based on the REAL market ticks
+                executions = []
+                
+                # Trigger a mock execution roughly 5% of the time to populate the terminal
+                if random.random() < 0.05:
+                    side = random.choice(["BUY", "SELL"])
+                    size = 0.5
+                    pnl = random.uniform(-1.0, 3.5) 
+                    
+                    if side == "BUY":
+                        inventory += size
+                    else:
+                        inventory -= size
+                        
+                    cash += pnl
+                    
+                    executions.append({
+                        "time": datetime.utcnow().isoformat() + "Z",
+                        "side": side,
+                        "price": round(real_price, 2),
+                        "size": size,
+                        "realized_pnl": round(pnl, 2)
+                    })
 
-@router.on_event("startup")
-async def start_simulated_engine():
-    """
-    Spawns the HFT engine simulator in the background the moment FastAPI boots.
-    """
-    asyncio.create_task(hft_engine_simulator())
+                net_worth = cash + (inventory * real_price)
+
+                # 3. Package the real data + AI telemetry and send to React
+                payload = {
+                    "timestamp": timestamp_ms,
+                    "mid_price": real_price,
+                    "net_worth": round(net_worth, 2),
+                    "inventory_btc": round(inventory, 2),
+                    "latest_executions": executions
+                }
+                
+                await websocket.send_text(json.dumps(payload))
+                
+    except WebSocketDisconnect:
+        print(f"[Engine] Client disconnected from {symbol} stream.")
+    except Exception as e:
+        print(f"[Engine] Stream Error: {e}")
