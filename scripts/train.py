@@ -10,7 +10,7 @@ build_path = project_root / "backend_cpp" / "build"
 for path in (project_root, build_path):
     sys.path.insert(0, str(path))
 
-from rl_trading.envs.trading_env import TradingEnv
+from engine.rl_trading.envs.trading_env import TradingEnv
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecNormalize
 

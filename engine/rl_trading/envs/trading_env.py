@@ -1,8 +1,20 @@
+import sys
+import os
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-import hft_engine
 
+# 1. Calculate the absolute path to the C++ build directory
+# From: engine/rl_trading/envs/trading_env.py
+# To:   engine/backend_cpp/build
+build_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../backend_cpp/build'))
+
+# 2. Inject it into the Python path BEFORE importing the engine
+if build_path not in sys.path:
+    sys.path.append(build_path)
+
+# 3. Now Python can see the .pyd binary!
+import hft_engine
 class TradingEnv(gym.Env):
     """
     Institutional-Grade Hybrid RL + Mathematical Market Making Environment.
