@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from core.celery_app import celery_app
+from api.core.celery_app import celery_app
 
 router = APIRouter(prefix="/api/training", tags=["RL Training"])
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any
-from core.database import supabase
+from api.core.database import supabase
 
 router = APIRouter(prefix="/api/models", tags=["Model Registry"])
 

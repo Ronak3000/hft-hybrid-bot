@@ -16,7 +16,6 @@ export default function LandingPage() {
           <div className="flex items-center gap-6 text-sm font-medium">
             <Link href="#features" className="text-zinc-400 hover:text-zinc-50 transition-colors hidden md:block">Features</Link>
             <Link href="#architecture" className="text-zinc-400 hover:text-zinc-50 transition-colors hidden md:block">Architecture</Link>
-            <Link href="/login" className="text-zinc-400 hover:text-zinc-50 transition-colors">Sign In</Link>
             <Link 
               href="/dashboard" 
               className="bg-zinc-50 text-zinc-950 hover:bg-zinc-200 px-4 py-2 rounded-md font-semibold transition-colors"

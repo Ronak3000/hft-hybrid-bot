@@ -8,7 +8,6 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPExcept
 from pydantic import BaseModel
 import websockets
 from stable_baselines3 import PPO
-from supabase import create_client, Client
 import numpy as np
 
 # --- AUTOMATIC PATH INJECTION ---
@@ -18,16 +17,9 @@ if project_root not in sys.path:
 # --------------------------------
 
 from engine.rl_trading.envs.trading_env import TradingEnv 
+from api.core.database import supabase as supabase_client
 
 router = APIRouter(tags=["Institutional Live Daemon"])
-
-# Initialize Supabase Client for Hyperparameter Inheritance
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://your-project.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "your-service-key")
-try:
-    supabase_client: Optional[Client] = create_client(SUPABASE_URL, SUPABASE_KEY)
-except Exception:
-    supabase_client = None
 
 # =====================================================================
 # 1. THE STATE STORE & QUANT DAEMON MANAGER

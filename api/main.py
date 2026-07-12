@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Import all platform routers
-from routes import training, models, live, backtest
+from api.routes import training, models, live, backtest
 
 app = FastAPI(title="Quant IaaS Platform")
 
