@@ -50,8 +50,12 @@ COPY engine/ ./engine/
 COPY worker/ ./worker/
 RUN mkdir -p ./data/
 
+# Copy start script
+COPY start.sh .
+RUN chmod +x start.sh
+
 # Expose FastAPI port
 EXPOSE 8000
 
-# Default command: start FastAPI (overridden per-service in Render dashboard)
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default command: run both API and Worker
+CMD ["./start.sh"]
