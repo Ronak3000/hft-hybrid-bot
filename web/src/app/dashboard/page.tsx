@@ -145,7 +145,7 @@ export default function LiveDashboardPage() {
                 return [sec, { time: sec, value: point.mid_price }];
               })
             ).values()
-          ).sort((a, b) => (a.time as number) - (b.time as number));
+          ).sort((a: any, b: any) => (a.time as number) - (b.time as number));
 
           series.setData(cleanHistory);
         }
@@ -180,7 +180,7 @@ export default function LiveDashboardPage() {
             const key = `${m.time}-${m.text}-${m.position}`;
             uniqueMap.set(key, m);
           });
-          const sortedMarkers = Array.from(uniqueMap.values()).sort((a, b) => (a.time as number) - (b.time as number));
+          const sortedMarkers = Array.from(uniqueMap.values()).sort((a: any, b: any) => (a.time as number) - (b.time as number));
           markersPlugin.setMarkers(sortedMarkers);
         }
 
