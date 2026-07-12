@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Activity, Database, Play, AlertTriangle, ShieldCheck, Server, RefreshCw, Pause, PlayCircle } from 'lucide-react';
 import { createChart, ColorType, Time, AreaSeries, createSeriesMarkers } from 'lightweight-charts';
+import { API_BASE, WS_BASE } from '@/lib/api';
 
 const SUPPORTED_ASSETS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 'ADA/USDT'];
 
@@ -28,8 +29,10 @@ export default function LiveDashboardPage() {
   
   const [engineStatus, setEngineStatus] = useState<'OFFLINE' | 'BOOTING' | 'LIVE'>('OFFLINE');
   const [isQuoting, setIsQuoting] = useState<boolean>(true);
-  const [activeMaxInv, setActiveMaxInv] = useState<number>(10.0);
-  const [activeBaseTrade, setActiveBaseTrade] = useState<number>(0.50);
+  // Params reported by the live engine API. null = not yet received, falls through to model params.
+  const [engineMaxInv, setEngineMaxInv] = useState<number | null>(null);
+  const [engineBaseTrade, setEngineBaseTrade] = useState<number | null>(null);
+  const engineStatusRef = useRef(engineStatus);
   
   const [liveData, setLiveData] = useState({ price: 0, netWorth: 1000000, inventory: 0 });
   const [liveLogs, setLiveLogs] = useState<string[]>([]);
@@ -42,16 +45,18 @@ export default function LiveDashboardPage() {
     const checkDaemonStatus = async () => {
       try {
         const cleanSym = symbol.replace('/', '').replace('-', '').toUpperCase();
-        const res = await fetch(`http://localhost:8000/api/engine/status/${cleanSym}`);
+        const res = await fetch(`${API_BASE}/api/engine/status/${cleanSym}`);
         const data = await res.json();
         if (data.status === 'LIVE') {
           setEngineStatus('LIVE');
+          engineStatusRef.current = 'LIVE';
           setIsQuoting(data.is_quoting ?? true);
-          if (data.max_inventory !== undefined) setActiveMaxInv(Number(data.max_inventory));
-          if (data.base_trade_size !== undefined) setActiveBaseTrade(Number(data.base_trade_size));
+          if (data.max_inventory !== undefined) setEngineMaxInv(Number(data.max_inventory));
+          if (data.base_trade_size !== undefined) setEngineBaseTrade(Number(data.base_trade_size));
           setSelectedModel(data.model_filename);
         } else {
           setEngineStatus('OFFLINE');
+          engineStatusRef.current = 'OFFLINE';
         }
       } catch (error) {
         setEngineStatus('OFFLINE');
@@ -65,12 +70,13 @@ export default function LiveDashboardPage() {
       setIsLoadingModels(true);
       try {
         const cleanSymbol = symbol.replace('/', '').replace('-', '').toUpperCase();
-        const res = await fetch(`http://localhost:8000/api/models/${cleanSymbol}`);
+        const res = await fetch(`${API_BASE}/api/models/${cleanSymbol}`);
         const data = await res.json();
         
         if (data.status === 'success') {
           setAvailableModels(data.models);
-          if (data.models.length > 0 && engineStatus === 'OFFLINE') {
+          // Only auto-select latest model when engine is offline (use ref to avoid stale closure)
+          if (data.models.length > 0 && engineStatusRef.current === 'OFFLINE') {
             const sorted = data.models.sort((a: TrainedModel, b: TrainedModel) => 
               new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             );
@@ -84,7 +90,7 @@ export default function LiveDashboardPage() {
       }
     };
     fetchModels();
-  }, [symbol, engineStatus]);
+  }, [symbol]);
 
   // V5 Hardware-Accelerated Chart & Telemetry Socket
   useEffect(() => {
@@ -113,7 +119,7 @@ export default function LiveDashboardPage() {
     window.addEventListener('resize', handleResize);
 
     const cleanSymbol = symbol.replace('/', '').replace('-', '').toLowerCase();
-    const ws = new WebSocket(`ws://localhost:8000/ws/live/${cleanSymbol}`);
+    const ws = new WebSocket(`${WS_BASE}/ws/live/${cleanSymbol}`);
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -126,8 +132,8 @@ export default function LiveDashboardPage() {
       // Handle instant chart and execution marker recovery when returning to tab
       if (data.type === 'RECOVERY_BUFFER') {
         setLiveLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] System: Synchronized with background quant daemon.`]);
-        if (data.max_inventory !== undefined) setActiveMaxInv(Number(data.max_inventory));
-        if (data.base_trade_size !== undefined) setActiveBaseTrade(Number(data.base_trade_size));
+        if (data.max_inventory !== undefined) setEngineMaxInv(Number(data.max_inventory));
+        if (data.base_trade_size !== undefined) setEngineBaseTrade(Number(data.base_trade_size));
         if (data.is_quoting !== undefined) setIsQuoting(data.is_quoting);
         
         // 1. Restore chart price line
@@ -241,17 +247,20 @@ export default function LiveDashboardPage() {
     setEngineStatus('BOOTING');
     setLiveLogs([]); 
     try {
-      const res = await fetch('http://localhost:8000/api/engine/deploy', {
+      const res = await fetch(`${API_BASE}/api/engine/deploy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbol, model_filename: selectedModel })
       });
       const data = await res.json();
       if (data.status === 'success') {
-        if (data.max_inventory !== undefined) setActiveMaxInv(Number(data.max_inventory));
-        if (data.base_trade_size !== undefined) setActiveBaseTrade(Number(data.base_trade_size));
+        if (data.max_inventory !== undefined) setEngineMaxInv(Number(data.max_inventory));
+        if (data.base_trade_size !== undefined) setEngineBaseTrade(Number(data.base_trade_size));
         setIsQuoting(true);
-        setTimeout(() => setEngineStatus('LIVE'), 800);
+        setTimeout(() => {
+          setEngineStatus('LIVE');
+          engineStatusRef.current = 'LIVE';
+        }, 800);
       } else {
         setEngineStatus('OFFLINE');
       }
@@ -262,8 +271,11 @@ export default function LiveDashboardPage() {
 
   const handleStopEngine = async () => {
     try {
-      await fetch(`http://localhost:8000/api/engine/stop?symbol=${symbol}`, { method: 'POST' });
+      await fetch(`${API_BASE}/api/engine/stop?symbol=${symbol}`, { method: 'POST' });
+      setEngineMaxInv(null);
+      setEngineBaseTrade(null);
       setEngineStatus('OFFLINE');
+      engineStatusRef.current = 'OFFLINE';
     } catch (error) {
       console.error(error);
     }
@@ -271,7 +283,7 @@ export default function LiveDashboardPage() {
 
   const handleToggleQuoting = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/engine/toggle_quoting?symbol=${symbol}`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/api/engine/toggle_quoting?symbol=${symbol}`, { method: 'POST' });
       const data = await res.json();
       if (data.status === 'success') {
         setIsQuoting(data.is_quoting);
@@ -282,22 +294,20 @@ export default function LiveDashboardPage() {
     }
   };
 
+  // Derive display values: engine API state → model hyperparameters → hardcoded default.
   const activeModelDetails = availableModels.find(m => m.model_filename === selectedModel);
-  
-  let displayMaxInv = 10.0;
-  let displayBaseTrade = 0.50;
-  
-  if (engineStatus === 'LIVE') {
-    displayMaxInv = activeMaxInv;
-    displayBaseTrade = activeBaseTrade;
-  } else if (activeModelDetails?.hyperparameters) {
-    let params: any = activeModelDetails.hyperparameters;
-    if (typeof params === 'string') {
-      try { params = JSON.parse(params); } catch (e) {}
+  let modelMaxInv: number | undefined;
+  let modelBaseTrade: number | undefined;
+  if (activeModelDetails?.hyperparameters) {
+    let raw: any = activeModelDetails.hyperparameters;
+    if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch (e) { raw = null; } }
+    if (raw && typeof raw === 'object') {
+      if (raw.max_inventory !== undefined) modelMaxInv = Number(raw.max_inventory);
+      if (raw.base_trade_size !== undefined) modelBaseTrade = Number(raw.base_trade_size);
     }
-    if (params?.max_inventory !== undefined) displayMaxInv = Number(params.max_inventory);
-    if (params?.base_trade_size !== undefined) displayBaseTrade = Number(params.base_trade_size);
   }
+  const displayMaxInv: number = engineMaxInv ?? modelMaxInv ?? 10.0;
+  const displayBaseTrade: number = engineBaseTrade ?? modelBaseTrade ?? 0.50;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 p-6 font-sans">

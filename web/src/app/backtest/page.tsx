@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { History, Database, Play, BarChart2, CheckCircle2, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
-// NEW: Imported createSeriesMarkers to allow arrows on the candlestick chart
-import { createChart, ColorType, CandlestickSeries, Time, createSeriesMarkers } from 'lightweight-charts';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { History, Database, Play, BarChart2, CheckCircle2, Loader2, AlertTriangle, RefreshCw, CandlestickChart, TrendingUp } from 'lucide-react';
+// Imported both CandlestickSeries and LineSeries for dual chart mode support
+import { createChart, ColorType, CandlestickSeries, LineSeries, Time, createSeriesMarkers } from 'lightweight-charts';
+import { API_BASE } from '@/lib/api';
 
 const SUPPORTED_ASSETS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 'ADA/USDT'];
 const TIMEFRAMES = [
@@ -18,6 +19,22 @@ interface TrainedModel {
   created_at: string;
 }
 
+interface CandleData {
+  time: Time;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+interface MarkerData {
+  time: Time;
+  position: string;
+  color: string;
+  shape: string;
+  text: string;
+}
+
 export default function BacktestPage() {
   const [symbol, setSymbol] = useState<string>('BTC/USDT');
   const [timeframe, setTimeframe] = useState<string>('30m');
@@ -30,15 +47,26 @@ export default function BacktestPage() {
   const [logs, setLogs] = useState<string[]>([]);
   const [metrics, setMetrics] = useState({ pnl: 0, winRate: 0, trades: 0, maxDrawdown: 0 });
   
+  const [chartType, setChartType] = useState<'candlestick' | 'line'>('candlestick');
+
+  // Cache simulation results so chart type toggle never needs a re-fetch
+  const simulationData = useRef<{ candles: CandleData[]; markers: MarkerData[] } | null>(null);
+  // Track current chart type in a ref so renderChart closure always reads latest value
+  const chartTypeRef = useRef(chartType);
+
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chartTypeRef.current = chartType;
+  }, [chartType]);
 
   useEffect(() => {
     const fetchModels = async () => {
       setIsLoadingModels(true);
       try {
         const cleanSymbol = symbol.replace('/', '').replace('-', '').toUpperCase();
-        const res = await fetch(`http://localhost:8000/api/models/${cleanSymbol}`);
+        const res = await fetch(`${API_BASE}/api/models/${cleanSymbol}`);
         const data = await res.json();
         
         if (data.status === 'success') {
@@ -63,96 +91,130 @@ export default function BacktestPage() {
     terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
+  /** Builds (or rebuilds) the lightweight-charts instance from provided candles + markers */
+  const renderChart = useCallback((candles: CandleData[], markers: MarkerData[]) => {
+    if (!chartContainerRef.current) return;
+
+    chartContainerRef.current.innerHTML = '';
+    const chart = createChart(chartContainerRef.current, {
+      layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: '#A1A1AA' },
+      grid: { vertLines: { color: '#1F2937' }, horzLines: { color: '#1F2937' } },
+      timeScale: { timeVisible: true, borderColor: '#1F2937' },
+      rightPriceScale: { borderColor: '#1F2937', autoScale: true }
+    });
+
+    let activeSeries: any;
+    if (chartTypeRef.current === 'candlestick') {
+      activeSeries = chart.addSeries(CandlestickSeries, {
+        upColor: '#10B981', downColor: '#EF4444',
+        borderVisible: false, wickUpColor: '#10B981', wickDownColor: '#EF4444'
+      });
+      activeSeries.setData(candles);
+    } else {
+      activeSeries = chart.addSeries(LineSeries, {
+        color: '#a855f7',
+        lineWidth: 2,
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 4,
+        crosshairMarkerBorderColor: '#a855f7',
+        crosshairMarkerBackgroundColor: '#0D1117',
+        priceLineVisible: false,
+        lastValueVisible: true,
+      });
+      activeSeries.setData(candles.map(c => ({ time: c.time, value: c.close })));
+    }
+
+    if (markers.length > 0) {
+      createSeriesMarkers(activeSeries, markers as any);
+    }
+
+    chart.timeScale().fitContent();
+  }, []);
+
+  // Re-render chart instantly when chart type toggles (uses cached simulation data)
+  useEffect(() => {
+    if (simulationData.current) {
+      renderChart(simulationData.current.candles, simulationData.current.markers);
+    }
+  }, [chartType, renderChart]);
+
   const handleRunBacktest = async () => {
     if (!selectedModel) return;
-    
+
     setStatus('FETCHING');
     setLogs([`[${new Date().toLocaleTimeString()}] Requesting historical OHLCV data for ${symbol} (${timeframe})...`]);
     setMetrics({ pnl: 0, winRate: 0, trades: 0, maxDrawdown: 0 });
+    simulationData.current = null;
 
     try {
-      const res = await fetch(`http://localhost:8000/api/backtest/ohlcv?symbol=${encodeURIComponent(symbol)}&timeframe=${timeframe}`);
+      const res = await fetch(`${API_BASE}/api/backtest/ohlcv?symbol=${encodeURIComponent(symbol)}&timeframe=${timeframe}`);
       const data = await res.json();
-      
+
       if (!data.data || data.data.length === 0) {
-        throw new Error("No data returned from backend.");
+        throw new Error('No data returned from backend.');
       }
 
       setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Downloaded ${data.data.length} candles. Booting simulator...`]);
       setStatus('RUNNING');
 
-      if (chartContainerRef.current) {
-        chartContainerRef.current.innerHTML = ''; 
-        const chart = createChart(chartContainerRef.current, {
-          layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: '#A1A1AA' },
-          grid: { vertLines: { color: '#1F2937' }, horzLines: { color: '#1F2937' } },
-          timeScale: { timeVisible: true, borderColor: '#1F2937' },
-          rightPriceScale: { borderColor: '#1F2937', autoScale: true }
-        });
+      const candles: CandleData[] = data.data.map((candle: any) => ({
+        time: candle.time as Time,
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+      }));
 
-        const candlestickSeries = chart.addSeries(CandlestickSeries, {
-          upColor: '#10B981', downColor: '#EF4444', 
-          borderVisible: false, wickUpColor: '#10B981', wickDownColor: '#EF4444'
-        });
+      // Render immediately (no markers yet) with the currently selected chart type
+      renderChart(candles, []);
 
-        // Initialize the markers plugin for the Backtest chart
-        const markersPlugin = createSeriesMarkers(candlestickSeries, []);
+      // Simulate engine processing time then generate trade markers
+      setTimeout(() => {
+        setLogs(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] Engine: Evaluated trajectory across ${candles.length} periods.`,
+          `[${new Date().toLocaleTimeString()}] Engine: Backtest complete. Rendering execution markers...`,
+        ]);
 
-        const formattedData = data.data.map((candle: any) => ({
-          time: candle.time as Time,
-          open: candle.open,
-          high: candle.high,
-          low: candle.low,
-          close: candle.close
-        }));
+        // Generate realistic simulated trade markers
+        const mockMarkers: MarkerData[] = [];
+        const totalTrades = Math.floor(Math.random() * 100) + 20; // 20 to 120 trades
 
-        candlestickSeries.setData(formattedData);
-        chart.timeScale().fitContent();
+        for (let i = 0; i < totalTrades; i++) {
+          const randomIndex = Math.floor(Math.random() * candles.length);
+          const candle = candles[randomIndex];
+          const isBuy = Math.random() > 0.5;
 
-        // Simulate engine processing time
-        setTimeout(() => {
-          setLogs(prev => [
-            ...prev, 
-            `[${new Date().toLocaleTimeString()}] Engine: Evaluated trajectory across ${formattedData.length} periods.`,
-            `[${new Date().toLocaleTimeString()}] Engine: Backtest complete. Rendering execution markers...`
-          ]);
-          
-          // Generate realistic simulated trade markers
-          const mockMarkers: any[] = [];
-          const totalTrades = Math.floor(Math.random() * 100) + 20; // 20 to 120 trades
-          
-          for(let i = 0; i < totalTrades; i++) {
-             // Pick a random candle index to place a trade on
-             const randomIndex = Math.floor(Math.random() * formattedData.length);
-             const candle = formattedData[randomIndex];
-             const isBuy = Math.random() > 0.5;
-
-             mockMarkers.push({
-               time: candle.time,
-               position: isBuy ? 'belowBar' : 'aboveBar',
-               color: isBuy ? '#10B981' : '#EF4444',
-               shape: isBuy ? 'arrowUp' : 'arrowDown',
-               text: isBuy ? 'B' : 'S',
-             });
-          }
-
-          // Ensure unique timestamps and sort them (TradingView requirement)
-          const uniqueMarkers = Array.from(new Map(mockMarkers.map(m => [m.time, m])).values());
-          uniqueMarkers.sort((a, b) => (a.time as number) - (b.time as number));
-          
-          // Inject the markers onto the candlestick chart
-          markersPlugin.setMarkers(uniqueMarkers);
-
-          setMetrics({
-            pnl: Math.random() * 5000 + 1000,
-            winRate: Math.random() * 20 + 50,
-            trades: uniqueMarkers.length,
-            maxDrawdown: -(Math.random() * 15 + 2)
+          mockMarkers.push({
+            time: candle.time,
+            position: isBuy ? 'belowBar' : 'aboveBar',
+            color: isBuy ? '#10B981' : '#EF4444',
+            shape: isBuy ? 'arrowUp' : 'arrowDown',
+            text: isBuy ? 'B' : 'S',
           });
-          
-          setStatus('COMPLETE');
-        }, 1500);
-      }
+        }
+
+        // Ensure unique timestamps and sort (TradingView requirement)
+        const uniqueMarkers = Array.from(
+          new Map(mockMarkers.map(m => [m.time, m])).values()
+        ) as MarkerData[];
+        uniqueMarkers.sort((a, b) => (a.time as number) - (b.time as number));
+
+        // Cache results — toggling chart type will now be instant
+        simulationData.current = { candles, markers: uniqueMarkers };
+
+        // Re-render with markers applied
+        renderChart(candles, uniqueMarkers);
+
+        setMetrics({
+          pnl: Math.random() * 5000 + 1000,
+          winRate: Math.random() * 20 + 50,
+          trades: uniqueMarkers.length,
+          maxDrawdown: -(Math.random() * 15 + 2),
+        });
+
+        setStatus('COMPLETE');
+      }, 1500);
     } catch (error: any) {
       setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Error: ${error.message}`]);
       setStatus('IDLE');
@@ -283,7 +345,34 @@ export default function BacktestPage() {
                 <span className="font-bold text-sm">{symbol}</span>
                 <span className="text-xs px-2 py-1 bg-zinc-800 rounded text-zinc-200 font-mono">Candles: {timeframe}</span>
               </div>
-              <div>
+              <div className="flex items-center gap-3">
+                {/* Chart type toggle */}
+                <div className="flex items-center bg-zinc-950 border border-zinc-700 rounded-lg p-0.5 gap-0.5">
+                  <button
+                    onClick={() => setChartType('candlestick')}
+                    title="Candlestick Chart"
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      chartType === 'candlestick'
+                        ? 'bg-purple-600 text-white shadow-sm shadow-purple-900'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    <CandlestickChart size={13} />
+                    <span>Candles</span>
+                  </button>
+                  <button
+                    onClick={() => setChartType('line')}
+                    title="Line Chart"
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      chartType === 'line'
+                        ? 'bg-purple-600 text-white shadow-sm shadow-purple-900'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    <TrendingUp size={13} />
+                    <span>Line</span>
+                  </button>
+                </div>
                 {status === 'COMPLETE' && <span className="flex items-center gap-2 text-xs text-emerald-500"><CheckCircle2 size={14} /> Simulation Finished</span>}
               </div>
             </div>

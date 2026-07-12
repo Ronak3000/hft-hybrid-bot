@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,10 +7,15 @@ from api.routes import training, models, live, backtest
 
 app = FastAPI(title="Quant IaaS Platform")
 
-# CORS configuration for the Next.js frontend
+# CORS: read allowed origins from env var (comma-separated).
+# Set CORS_ORIGINS=https://your-app.vercel.app on Render.
+# Falls back to localhost for local development.
+_cors_env = os.getenv("CORS_ORIGINS", "http://localhost:3000")
+allowed_origins = [origin.strip() for origin in _cors_env.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -104,7 +104,7 @@ def fetch_model_hyperparameters(model_filename: str):
     # 1. First try Supabase DB (safely handling both dictionary and JSON string formats)
     if supabase_client:
         try:
-            res = supabase_client.table("models").select("*").eq("model_filename", model_filename).execute()
+            res = supabase_client.table("trained_models").select("*").eq("model_filename", model_filename).execute()
             if res.data and len(res.data) > 0:
                 # Tell Pylance this row is strictly a dictionary, not a JSON primitive union!
                 row = cast(Dict[str, Any], res.data[0])
@@ -308,7 +308,7 @@ async def deploy_engine(req: DeployRequest):
     manager.daemons[clean_sym] = state
     asyncio.create_task(run_autonomous_daemon(state))
     
-    return {"status": "success", "message": f"Autonomous daemon deployed for {req.symbol}", "max_inventory": max_inv}
+    return {"status": "success", "message": f"Autonomous daemon deployed for {req.symbol}", "max_inventory": max_inv, "base_trade_size": base_sz}
 
 @router.post("/api/engine/toggle_quoting")
 async def toggle_quoting(symbol: str = Query(...)):

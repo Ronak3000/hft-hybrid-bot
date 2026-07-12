@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { WS_BASE } from '@/lib/api';
 
 interface Execution {
   time: string;
@@ -29,7 +30,7 @@ export const useTradingStore = create<TradingState>((set) => ({
 
   connect: () => {
     if (ws) return;
-    ws = new WebSocket('ws://localhost:8000/ws/live');
+    ws = new WebSocket(`${WS_BASE}/ws/live`);
 
     ws.onopen = () => set({ isConnected: true });
     

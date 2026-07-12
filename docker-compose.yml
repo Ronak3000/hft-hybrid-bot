@@ -1,10 +1,31 @@
 version: '3.8'
 
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: quant_redis_broker
+  api:
+    build: .
+    restart: always
+    command: python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
     ports:
-      - "6379:6379"
-    restart: unless-stopped
-    command: redis-server --save 60 1 --loglevel warning
+      - "8000:8000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - INTERNAL_API_URL=http://api:8000
+
+  worker:
+    build: .
+    restart: always
+    command: celery -A worker.tasks.rl_training worker --loglevel=info
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - INTERNAL_API_URL=http://api:8000
+    depends_on:
+      - api
+    volumes:
+      - ./data:/app/data
+      - ./engine/saved_models:/app/engine/saved_models

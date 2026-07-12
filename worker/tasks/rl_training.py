@@ -110,7 +110,8 @@ def train_ppo_model(self, symbol, start_date, end_date, epochs, learning_rate, e
         }
         
         try:
-            res = requests.post("http://localhost:8000/api/models/register", json=db_payload, timeout=10)
+            internal_api_url = os.getenv("INTERNAL_API_URL", "http://localhost:8000")
+            res = requests.post(f"{internal_api_url}/api/models/register", json=db_payload, timeout=10)
             print(f"[Worker] DB Registration Response: {res.status_code}")
         except Exception as api_err:
             print(f"[Worker Warning] Could not register model via HTTP API: {api_err}. (Local .json sidecar will act as backup)")

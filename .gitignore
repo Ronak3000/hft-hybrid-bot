@@ -7,9 +7,30 @@ env/
 *.__pycache__
 *.py[cod]
 *$py.class
-
+__pycache__/
 
 # IDEs
 .vscode/
 .idea/
+
+# Environment secrets
 api/.env
+.env
+*.env
+
+# C++ build artifacts (compiled on Render by Docker, not committed)
+engine/backend_cpp/build/
+*.pyd
+*.so
+*.dll
+
+# Large data CSVs (downloaded at runtime by the Celery worker)
+data/*.csv
+
+# Next.js
+web/.next/
+web/node_modules/
+
+# Saved model weights (ephemeral on Render free tier)
+engine/saved_models/*.zip
+engine/saved_models/*.json

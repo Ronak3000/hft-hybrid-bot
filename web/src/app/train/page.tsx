@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { BrainCircuit, Play, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronUp, Settings2, Calendar } from 'lucide-react';
 import { useTrainingStore } from '@/store/useTrainingStore';
+import { API_BASE } from '@/lib/api';
 
 // Strict Binance Pairs
 const SUPPORTED_ASSETS = [
@@ -40,7 +41,7 @@ export default function TrainingPage() {
     addLog('Dispatching job to cluster...');
 
     try {
-      const res = await fetch('http://localhost:8000/api/training/start', {
+      const res = await fetch(`${API_BASE}/api/training/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params)
@@ -60,7 +61,7 @@ useEffect(() => {
 
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/training/status/${jobId}`);
+        const res = await fetch(`${API_BASE}/api/training/status/${jobId}`);
         const data = await res.json();
 
         if (data.state === 'PROGRESS') {
