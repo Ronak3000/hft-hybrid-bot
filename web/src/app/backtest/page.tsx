@@ -72,7 +72,7 @@ export default function BacktestPage() {
         if (data.status === 'success') {
           setAvailableModels(data.models);
           if (data.models.length > 0) {
-            const sorted = data.models.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            const sorted = data.models.sort((a: TrainedModel, b: TrainedModel) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
             setSelectedModel(sorted[0].model_filename);
           } else {
             setSelectedModel('');
