@@ -48,7 +48,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY api/ ./api/
 COPY engine/ ./engine/
 COPY worker/ ./worker/
-COPY data/ ./data/
+RUN mkdir -p ./data/
 
 # Expose FastAPI port
 EXPOSE 8000
