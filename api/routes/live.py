@@ -183,7 +183,7 @@ def execute_rl_step(env: TradingEnv, agent: PPO, obs: Any, tick_data: Dict[str, 
 
 async def run_autonomous_daemon(state: EngineState):
     binance_symbol = state.symbol.lower().replace("/", "").replace("-", "")
-    binance_ws_url = f"wss://stream.binance.com:9443/ws/{binance_symbol}@trade"
+    binance_ws_url = f"wss://stream.binance.us:9443/ws/{binance_symbol}@trade"
     
     async def producer():
         try:

@@ -25,8 +25,8 @@ async def get_historical_data(
     
     interval = interval_map.get(timeframe, "30m")
     
-    # Binance REST API URL
-    url = "https://api.binance.com/api/v3/klines"
+    # Binance US REST API URL (Bypasses geoblock on Render)
+    url = "https://api.binance.us/api/v3/klines"
     params = {
         "symbol": clean_symbol,
         "interval": interval,

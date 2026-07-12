@@ -17,7 +17,7 @@ def download_binance_data(symbol: str, start_date: str, end_date: str, output_pa
     start_ts = int(datetime.strptime(start_date, "%Y-%m-%d").timestamp() * 1000)
     end_ts = int(datetime.strptime(end_date, "%Y-%m-%d").timestamp() * 1000)
 
-    url = "https://api.binance.com/api/v3/klines"
+    url = "https://api.binance.us/api/v3/klines"
     all_klines = []
     current_ts = start_ts
 
