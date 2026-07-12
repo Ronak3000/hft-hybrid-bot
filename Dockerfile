@@ -57,5 +57,6 @@ RUN chmod +x start.sh
 # Expose FastAPI port
 EXPOSE 8000
 
-# Default command: run both API and Worker
-CMD ["./start.sh"]
+# Default command: start FastAPI only. 
+# (Celery worker must be run separately due to 512MB free tier RAM limits)
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
