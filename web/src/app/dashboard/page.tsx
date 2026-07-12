@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Activity, Database, Play, AlertTriangle, ShieldCheck, Server, RefreshCw, Pause, PlayCircle } from 'lucide-react';
-import { createChart, ColorType, Time, AreaSeries, createSeriesMarkers } from 'lightweight-charts';
+import { createChart, ColorType, Time, AreaSeries, createSeriesMarkers, LineData } from 'lightweight-charts';
 import { API_BASE, WS_BASE } from '@/lib/api';
 
 const SUPPORTED_ASSETS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 'ADA/USDT'];
@@ -139,13 +139,13 @@ export default function LiveDashboardPage() {
         // 1. Restore chart price line
         if (data.chart_buffer && data.chart_buffer.length > 0) {
           const cleanHistory = Array.from(
-            new Map(
+            new Map<number, LineData<Time>>(
               data.chart_buffer.map((point: any) => {
                 const sec = Math.floor(point.timestamp / 1000) as Time;
-                return [sec, { time: sec, value: point.mid_price }];
+                return [sec as number, { time: sec, value: point.mid_price }];
               })
             ).values()
-          ).sort((a: any, b: any) => (a.time as number) - (b.time as number));
+          ).sort((a, b) => (a.time as number) - (b.time as number));
 
           series.setData(cleanHistory);
         }
