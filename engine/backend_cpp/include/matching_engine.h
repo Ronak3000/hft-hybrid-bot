@@ -9,13 +9,11 @@
 #include <iostream>
 #include <charconv>
 #include <string_view>
+#include <cstring>
 #include "order.h"
 #include "memory_pool.h"
 #include "hardware_slab.h"
 
-// ============================================================================
-// 1. DATA STRUCTURES & BIT TREE
-// ============================================================================
 struct HistoricalMessage {
     uint64_t timestamp;
     int type;          // 1 = Add, 2 = Cancel, 3 = Execute
@@ -31,7 +29,6 @@ struct ASQuotes {
     double reservation_price;
 };
 
-// Hardware-level bitset tree for deterministic O(1) best bid/ask lookups
 struct BitTree {
     uint64_t root = 0;
     uint64_t layer3[4] = {0};
@@ -81,15 +78,11 @@ struct BitTree {
     }
 };
 
-// ============================================================================
-// 2. CORE MATCHING ENGINE
-// ============================================================================
 class OrderBook {
 private:
-    // Powered by your hardware_slab.h template
     MemorySlab<PriceLevel> bids;
     MemorySlab<PriceLevel> asks;
-    MemorySlab<Order*> active_orders; // Direct O(1) array index lookup by Order ID
+    MemorySlab<Order*> active_orders; 
     
     BitTree bids_tree;
     BitTree asks_tree;
@@ -98,13 +91,61 @@ private:
     std::vector<HistoricalMessage> history;
     size_t replay_index = 0;
 
+    // High-performance hardware registers for live mode execution tracking
+    uint64_t live_ticker_price = 62500;
+    uint32_t live_bid_depth_volume = 10;
+    uint32_t live_ask_depth_volume = 10;
+    bool mode_is_live = false;
+
 public:
-    // Pre-allocate continuous physical slabs (up to 1M prices, 5M active order IDs)
     OrderBook() 
         : bids(1000000), 
           asks(1000000), 
           active_orders(5000000), 
           pool(1000000) {
+    }
+
+    // Direct interface for high-frequency live WebSockets updates
+    void inject_live_tick(uint64_t scaled_price, uint32_t volume, bool is_buyer_maker) noexcept {
+        live_ticker_price = scaled_price;
+        mode_is_live = true;
+
+        // Clear previous volatile bid/ask depth boundaries to avoid side leakage
+        int old_bid = bids_tree.get_highest();
+        int old_ask = asks_tree.get_lowest();
+        if (old_bid != -1) {
+            bids[old_bid].total_volume = 0;
+            bids_tree.clear_bit(old_bid);
+        }
+        if (old_ask != -1) {
+            asks[old_ask].total_volume = 0;
+            asks_tree.clear_bit(old_ask);
+        }
+
+        // Dynamically inject microstructure signals directly into structural maps
+        if (is_buyer_maker) {
+            // Ticks hitting the bid side: lean book volume expectations down
+            uint64_t current_bid = (scaled_price > 0) ? (scaled_price - 1) : 0;
+            uint64_t current_ask = scaled_price + 1;
+            
+            if (current_bid < bids.capacity() && current_ask < asks.capacity()) {
+                bids[current_bid].total_volume = volume;
+                asks[current_ask].total_volume = volume * 2; // Imbalance skewing
+                bids_tree.set_bit(current_bid);
+                asks_tree.set_bit(current_ask);
+            }
+        } else {
+            // Ticks hitting the ask side: lean book volume expectations up
+            uint64_t current_bid = scaled_price;
+            uint64_t current_ask = scaled_price + 2;
+            
+            if (current_bid < bids.capacity() && current_ask < asks.capacity()) {
+                bids[current_bid].total_volume = volume * 2;
+                asks[current_ask].total_volume = volume;
+                bids_tree.set_bit(current_bid);
+                asks_tree.set_bit(current_ask);
+            }
+        }
     }
 
     std::string process_order(uint64_t id, uint64_t price, uint32_t qty, int side_val) {
@@ -144,10 +185,11 @@ public:
                 order->quantity = remaining_qty;
                 order->side = side;
 
-                bids[price].push_back(order);
-                bids_tree.set_bit(price);
+                if (price < bids.capacity()) {
+                    bids[price].push_back(order);
+                    bids_tree.set_bit(price);
+                }
                 
-                // Write directly to Cache-Aligned Slab index (~1ns)
                 if (id < active_orders.capacity()) {
                     active_orders[id] = order;
                 }
@@ -185,8 +227,10 @@ public:
                 order->quantity = remaining_qty;
                 order->side = side;
 
-                asks[price].push_back(order);
-                asks_tree.set_bit(price);
+                if (price < asks.capacity()) {
+                    asks[price].push_back(order);
+                    asks_tree.set_bit(price);
+                }
                 
                 if (id < active_orders.capacity()) {
                     active_orders[id] = order;
@@ -197,7 +241,6 @@ public:
     }
 
     bool cancel_order(uint64_t id) {
-        // Direct Hardware Register Indexing (~1ns, zero hashing overhead)
         if (id >= active_orders.capacity()) return false;
         Order* order = active_orders[id];
         if (!order) return false;
@@ -207,11 +250,13 @@ public:
 
         MemorySlab<PriceLevel>& book = (side == Side::BUY) ? bids : asks;
         BitTree& tree = (side == Side::BUY) ? bids_tree : asks_tree;
+        
+        if (price >= book.capacity()) return false;
         PriceLevel& level = book[price];
 
         level.remove_order(order);
         pool.deallocate(order);
-        active_orders[id] = nullptr; // Clear slab index
+        active_orders[id] = nullptr; 
 
         if (!level.head) tree.clear_bit(price);
         return true;
@@ -222,15 +267,14 @@ public:
 
     uint32_t get_best_bid_volume() const {
         int best_bid = get_best_bid();
-        return (best_bid == -1) ? 0 : bids[best_bid].total_volume;
+        return (best_bid == -1 || (size_t)best_bid >= bids.capacity()) ? 0 : bids[best_bid].total_volume;
     }
 
     uint32_t get_best_ask_volume() const {
         int best_ask = get_best_ask();
-        return (best_ask == -1) ? 0 : asks[best_ask].total_volume;
+        return (best_ask == -1 || (size_t)best_ask >= asks.capacity()) ? 0 : asks[best_ask].total_volume;
     }
 
-    // --- Hardware-Calculated Microstructure Signal ---
     double get_obi() const {
         double v_bid = static_cast<double>(get_best_bid_volume());
         double v_ask = static_cast<double>(get_best_ask_volume());
@@ -238,7 +282,6 @@ public:
         return (v_bid - v_ask) / (v_bid + v_ask);
     }
 
-    // --- Ultra-Optimized Zero-Allocation CSV Loader ---
     bool load_history_csv(const std::string& filepath) {
         std::ifstream file(filepath, std::ios::binary | std::ios::ate);
         if (!file.is_open()) return false;
@@ -251,6 +294,7 @@ public:
 
         history.clear();
         replay_index = 0;
+        mode_is_live = false;
         history.reserve(size / 40); 
 
         const char* ptr = buffer.data();
@@ -303,7 +347,6 @@ public:
         return current_timestamp;
     }
 
-    // --- Mathematical Oracle ---
     ASQuotes get_as_quotes(double mid_price, double inventory, double volatility, double gamma, double kappa, double rl_spread_multiplier) {
         ASQuotes quotes;
         quotes.reservation_price = mid_price - (inventory * gamma * std::pow(volatility, 2));
@@ -319,18 +362,20 @@ public:
         return quotes;
     }
 
-    // --- Python RL Bridges ---
     void reset_cache() {
         replay_index = 0;
         bids_tree = BitTree();
         asks_tree = BitTree();
-        // Instant hardware memory wipe via memset (Zero iteration overhead)
         active_orders.clear_all();
         bids.clear_all();
         asks.clear_all();
     }
 
     std::pair<double, bool> advance_tick() {
+        if (mode_is_live) {
+            return std::make_pair(static_cast<double>(live_ticker_price), false);
+        }
+
         replay_next_tick();
         bool is_out_of_data = (replay_index >= history.size());
         

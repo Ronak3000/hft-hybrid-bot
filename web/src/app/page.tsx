@@ -11,7 +11,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <TerminalSquare className="text-emerald-500 w-6 h-6" />
-            <span className="font-bold text-lg tracking-tight">Quant Core</span>
+            <span className="font-bold text-lg tracking-tight">ApexHFT</span>
           </Link>
           <div className="flex items-center gap-6 text-sm font-medium">
             <Link href="#features" className="text-zinc-400 hover:text-zinc-50 transition-colors hidden md:block">Features</Link>
@@ -130,7 +130,7 @@ export default function LandingPage() {
               <span className="text-xs text-zinc-500 ml-2 font-mono">hft_engine_worker.py</span>
             </div>
             <div className="p-6 font-mono text-sm text-zinc-400 space-y-2">
-              <p><span className="text-emerald-400">root@quant-core</span>:~$ ./start_training --symbol BTC/USDT --epochs 500</p>
+              <p><span className="text-emerald-400">root@ApexHFT</span>:~$ ./start_training --symbol BTC/USDT --epochs 500</p>
               <p className="text-zinc-500">[INFO] Initializing Gymnasium environment...</p>
               <p className="text-zinc-500">[INFO] Loading 30 days of LOB data (34.2 GB)...</p>
               <p className="text-zinc-300">Epoch 1/500 | Loss: 0.842 | Reward: -12.4</p>

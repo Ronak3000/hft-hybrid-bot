@@ -21,7 +21,7 @@ export function Sidebar() {
       <Link href="/" className="h-20 flex items-center justify-center lg:justify-start lg:px-6 border-b border-zinc-800">
         <TerminalSquare className="text-emerald-500 w-8 h-8 shrink-0" />
         <span className="ml-3 font-bold text-lg text-zinc-50 hidden lg:block tracking-tight">
-          Quant Core
+          ApexHFT
         </span>
       </Link>
 
