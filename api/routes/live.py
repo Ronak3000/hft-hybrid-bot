@@ -154,7 +154,7 @@ def fetch_model_hyperparameters(model_filename: str):
 # 3. BACKGROUND WORKER HELPERS
 # =====================================================================
 def _ensure_model_downloaded(model_filename: str, model_path: str):
-    """Download model .zip from Supabase Storage if not present locally."""
+    """Download model .zip (and .json sidecar) from Supabase Storage if not present locally."""
     if os.path.exists(model_path):
         return  # Already present, nothing to do
 
@@ -176,6 +176,18 @@ def _ensure_model_downloaded(model_filename: str, model_path: str):
         raise FileNotFoundError(
             f"Failed to download model '{model_filename}' from Supabase Storage bucket 'models': {e}"
         )
+
+    # Also download the .json sidecar (best-effort, non-fatal)
+    json_filename = model_filename.replace(".zip", "") + ".json"
+    json_path = os.path.join(os.path.dirname(model_path), json_filename)
+    if not os.path.exists(json_path):
+        try:
+            json_bytes = supabase_client.storage.from_("models").download(json_filename)
+            with open(json_path, "wb") as f:
+                f.write(json_bytes)
+            print(f"[Daemon] Metadata sidecar downloaded to {json_path}")
+        except Exception:
+            pass  # Non-fatal: hyperparams already loaded from Supabase DB 
 
 
 def boot_engine_and_model(symbol: str, model_filename: str):

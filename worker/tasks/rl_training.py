@@ -6,11 +6,56 @@ import requests
 from celery import shared_task
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
+from supabase import create_client
 
 # Add the root directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from engine.rl_trading.envs.trading_env import TradingEnv
-from worker.utils.data_downloader import download_binance_data 
+from worker.utils.data_downloader import download_binance_data
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+STORAGE_BUCKET = "models"
+
+def _get_supabase():
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return None
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+def _ensure_bucket_exists(sb):
+    """Create the 'models' bucket if it doesn't already exist."""
+    try:
+        buckets = sb.storage.list_buckets()
+        bucket_names = [b.name for b in buckets]
+        if STORAGE_BUCKET not in bucket_names:
+            sb.storage.create_bucket(
+                STORAGE_BUCKET,
+                options={"public": False, "file_size_limit": 524288000}  # 500 MB limit
+            )
+            print(f"[Worker] Created Supabase Storage bucket: '{STORAGE_BUCKET}'")
+        else:
+            print(f"[Worker] Storage bucket '{STORAGE_BUCKET}' already exists.")
+    except Exception as e:
+        print(f"[Worker Warning] Could not verify/create storage bucket: {e}")
+
+def _upload_to_storage(sb, local_path: str, filename: str):
+    """Upload a file to Supabase Storage, overwriting if it already exists."""
+    try:
+        with open(local_path, "rb") as f:
+            file_bytes = f.read()
+        # Remove old version if present (upsert not supported on all SDK versions)
+        try:
+            sb.storage.from_(STORAGE_BUCKET).remove([filename])
+        except Exception:
+            pass
+        sb.storage.from_(STORAGE_BUCKET).upload(
+            path=filename,
+            file=file_bytes,
+            file_options={"content-type": "application/octet-stream"}
+        )
+        print(f"[Worker] Uploaded '{filename}' to Supabase Storage bucket '{STORAGE_BUCKET}'.")
+    except Exception as e:
+        print(f"[Worker Warning] Failed to upload '{filename}' to Supabase Storage: {e}")
 
 class CeleryProgressCallback(BaseCallback):
     def __init__(self, celery_task, total_timesteps, verbose=0):
@@ -90,6 +135,15 @@ def train_ppo_model(self, symbol, start_date, end_date, epochs, learning_rate, e
         with open(json_path, "w") as f:
             json.dump(sidecar_payload, f, indent=4)
         print(f"[Worker] Local metadata sidecar saved to: {json_path}")
+
+        # 5b. Upload model .zip and metadata .json to Supabase Storage
+        sb = _get_supabase()
+        if sb:
+            _ensure_bucket_exists(sb)
+            _upload_to_storage(sb, save_path, model_filename)
+            _upload_to_storage(sb, json_path, json_filename)
+        else:
+            print("[Worker Warning] Supabase credentials not set — skipping Storage upload.")
         # ----------------------------------------
 
         # 6. Push Metadata to Supabase DB via internal API call
