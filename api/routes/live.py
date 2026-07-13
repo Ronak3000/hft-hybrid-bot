@@ -9,6 +9,7 @@ from pydantic import BaseModel
 import websockets
 from stable_baselines3 import PPO
 import numpy as np
+from supabase import create_client
 
 # --- AUTOMATIC PATH INJECTION ---
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
@@ -18,6 +19,16 @@ if project_root not in sys.path:
 
 from engine.rl_trading.envs.trading_env import TradingEnv 
 from api.core.database import supabase as supabase_client
+
+# Storage client: uses service_role key to bypass RLS on the private 'models' bucket.
+# Falls back to the regular anon client if SUPABASE_SERVICE_KEY is not set.
+_service_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+_supabase_url = os.environ.get("SUPABASE_URL", "")
+storage_client = (
+    create_client(_supabase_url, _service_key)
+    if _service_key and _supabase_url
+    else supabase_client
+)
 
 router = APIRouter(tags=["Institutional Live Daemon"])
 
@@ -158,7 +169,7 @@ def _ensure_model_downloaded(model_filename: str, model_path: str):
     if os.path.exists(model_path):
         return  # Already present, nothing to do
 
-    if not supabase_client:
+    if not storage_client:
         raise FileNotFoundError(
             f"Model '{model_filename}' not found locally and Supabase is unavailable to download it."
         )
@@ -166,7 +177,7 @@ def _ensure_model_downloaded(model_filename: str, model_path: str):
     print(f"[Daemon] Model not found locally — downloading '{model_filename}' from Supabase Storage...")
     try:
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
-        response = supabase_client.storage.from_("models").download(model_filename)
+        response = storage_client.storage.from_("models").download(model_filename)
         with open(model_path, "wb") as f:
             f.write(response)
         print(f"[Daemon] Model downloaded successfully to {model_path}")
@@ -182,7 +193,7 @@ def _ensure_model_downloaded(model_filename: str, model_path: str):
     json_path = os.path.join(os.path.dirname(model_path), json_filename)
     if not os.path.exists(json_path):
         try:
-            json_bytes = supabase_client.storage.from_("models").download(json_filename)
+            json_bytes = storage_client.storage.from_("models").download(json_filename)
             with open(json_path, "wb") as f:
                 f.write(json_bytes)
             print(f"[Daemon] Metadata sidecar downloaded to {json_path}")
