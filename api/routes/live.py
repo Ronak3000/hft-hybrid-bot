@@ -7,8 +7,6 @@ from typing import cast, Dict, List, Any, Optional
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException
 from pydantic import BaseModel
 import websockets
-from stable_baselines3 import PPO
-import numpy as np
 from supabase import create_client
 
 # --- AUTOMATIC PATH INJECTION ---
@@ -17,7 +15,10 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 # --------------------------------
 
-from engine.rl_trading.envs.trading_env import TradingEnv 
+# NOTE: stable_baselines3 (PyTorch), numpy, and TradingEnv are intentionally NOT
+# imported here at module load time. PyTorch alone consumes ~350MB which would
+# immediately OOM Render's 512MB free tier. They are lazily imported inside
+# boot_engine_and_model() only when a user actually clicks "Deploy Strategy".
 from api.core.database import supabase as supabase_client
 
 # Storage client: uses service_role key to bypass RLS on the private 'models' bucket.
@@ -36,14 +37,14 @@ router = APIRouter(tags=["Institutional Live Daemon"])
 # 1. THE STATE STORE & QUANT DAEMON MANAGER
 # =====================================================================
 class EngineState:
-    def __init__(self, symbol: str, model_filename: str, env: TradingEnv, agent: PPO, obs: Any, max_inventory: float, base_trade_size: float):
+    def __init__(self, symbol: str, model_filename: str, env: Any, agent: Any, obs: Any, max_inventory: float, base_trade_size: float):
         self.symbol: str = symbol
         self.model_filename: str = model_filename
         self.is_running: bool = False
         self.is_quoting: bool = True  # Leave/Enter Market control flag
         
-        self.env: TradingEnv = env
-        self.agent: PPO = agent
+        self.env: Any = env
+        self.agent: Any = agent
         self.obs: Any = obs
         
         self.max_inventory: float = max_inventory
@@ -202,19 +203,25 @@ def _ensure_model_downloaded(model_filename: str, model_path: str):
 
 
 def boot_engine_and_model(symbol: str, model_filename: str):
+    # Lazy imports — deferred until first Deploy click to avoid OOM at startup.
+    import numpy as np  # noqa: F401 (used in execute_rl_step via module-level cache)
+    from stable_baselines3 import PPO
+    from engine.rl_trading.envs.trading_env import TradingEnv
+
     model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), f"../../engine/saved_models/{model_filename}"))
     max_inv, base_sz, kappa_val = fetch_model_hyperparameters(model_filename)
 
     # Auto-download the model from Supabase Storage if running on an ephemeral server
     _ensure_model_downloaded(model_filename, model_path)
 
-    env = TradingEnv(symbol=symbol.upper(), max_inventory=max_inv, base_trade_size=base_sz, kappa=kappa_val, live_mode=True) 
+    env = TradingEnv(symbol=symbol.upper(), max_inventory=max_inv, base_trade_size=base_sz, kappa=kappa_val, live_mode=True)
     agent = PPO.load(model_path, env=env)
     obs, _ = env.reset()
     return env, agent, obs, max_inv, base_sz
 
-def execute_rl_step(env: TradingEnv, agent: PPO, obs: Any, tick_data: Dict[str, Any], is_quoting: bool):
-    raw_env = cast(TradingEnv, env.unwrapped)
+def execute_rl_step(env: Any, agent: Any, obs: Any, tick_data: Dict[str, Any], is_quoting: bool):
+    import numpy as np
+    raw_env = cast(Any, env.unwrapped)
     raw_env.inject_live_tick(
         price=float(str(tick_data["price"])), 
         volume=float(str(tick_data["volume"])), 
