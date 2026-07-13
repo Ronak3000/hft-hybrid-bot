@@ -22,7 +22,8 @@ RUN mkdir -p build && cd build && \
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DPYBIND11_FINDPYTHON=ON \
           .. && \
-    make -j$(nproc)
+    make -j$(nproc) && \
+    ls *.so 2>/dev/null || (echo "ERROR: hft_engine .so not built!" && exit 1)
 
 # ============================================================
 # Stage 2: Python Runtime Stage
@@ -36,19 +37,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy compiled .so from the build stage into the engine build dir
-# so trading_env.py can find it at: engine/backend_cpp/build/hft_engine*.so
-COPY --from=cpp-builder /cpp_build/build/ /app/engine/backend_cpp/build/
-
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the full application source
+# Copy the full application source first
 COPY api/ ./api/
 COPY engine/ ./engine/
 COPY worker/ ./worker/
 RUN mkdir -p ./data/
+
+# IMPORTANT: Copy compiled .so AFTER engine/ source copy so it is never overwritten.
+# trading_env.py expects it at: engine/backend_cpp/build/hft_engine*.so
+COPY --from=cpp-builder /cpp_build/build/ /app/engine/backend_cpp/build/
 
 # Copy start script
 COPY start.sh .
