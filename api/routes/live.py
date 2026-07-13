@@ -171,6 +171,8 @@ def _ensure_model_downloaded(model_filename: str, model_path: str):
             f.write(response)
         print(f"[Daemon] Model downloaded successfully to {model_path}")
     except Exception as e:
+        # Print the REAL error so it appears in Render logs
+        print(f"[Daemon ERROR] Supabase Storage download failed: {type(e).__name__}: {e}")
         raise FileNotFoundError(
             f"Failed to download model '{model_filename}' from Supabase Storage bucket 'models': {e}"
         )
