@@ -4,7 +4,7 @@ import sys
 import asyncio
 from datetime import datetime
 from typing import cast, Dict, List, Any, Optional
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 import websockets
 from supabase import create_client
@@ -66,6 +66,7 @@ class EngineState:
 class QuantDaemonManager:
     def __init__(self):
         self.daemons: Dict[str, EngineState] = {}
+        self.booting: set[str] = set()
 
     def get_status(self, symbol: str) -> Dict[str, Any]:
         clean_sym = symbol.upper().replace("/", "").replace("-", "")
@@ -84,6 +85,8 @@ class QuantDaemonManager:
                 "recent_executions": state.executions[-50:],
                 "chart_buffer": state.chart_buffer[-300:]
             }
+        if clean_sym in self.booting:
+            return {"status": "BOOTING", "symbol": symbol}
         return {"status": "OFFLINE", "symbol": symbol}
 
     async def stop_daemon(self, symbol: str) -> bool:
@@ -202,14 +205,13 @@ def _ensure_model_downloaded(model_filename: str, model_path: str):
             pass  # Non-fatal: hyperparams already loaded from Supabase DB 
 
 
-def boot_engine_and_model(symbol: str, model_filename: str):
+def boot_engine_and_model(symbol: str, model_filename: str, max_inv: float, base_sz: float, kappa_val: float):
     # Lazy imports — deferred until first Deploy click to avoid OOM at startup.
     import numpy as np  # noqa: F401 (used in execute_rl_step via module-level cache)
     from stable_baselines3 import PPO
     from engine.rl_trading.envs.trading_env import TradingEnv
 
     model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), f"../../engine/saved_models/{model_filename}"))
-    max_inv, base_sz, kappa_val = fetch_model_hyperparameters(model_filename)
 
     # Auto-download the model from Supabase Storage if running on an ephemeral server
     _ensure_model_downloaded(model_filename, model_path)
@@ -340,33 +342,45 @@ class DeployRequest(BaseModel):
     model_filename: str
 
 @router.post("/api/engine/deploy")
-async def deploy_engine(req: DeployRequest):
+async def deploy_engine(req: DeployRequest, background_tasks: BackgroundTasks):
     clean_sym = req.symbol.upper().replace("/", "").replace("-", "")
     if clean_sym in manager.daemons and manager.daemons[clean_sym].is_running:
         return {"status": "success", "message": "Daemon already active.", "symbol": req.symbol}
     
-    print(f"[Control Plane] Allocating C++ bare-metal daemon for {req.symbol}...")
-    try:
-        env, agent, obs, max_inv, base_sz = await asyncio.to_thread(boot_engine_and_model, req.symbol, req.model_filename)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"C++ allocation failure: {str(e)}")
-        
-    state = EngineState(
-        symbol=req.symbol, 
-        model_filename=req.model_filename, 
-        env=env, 
-        agent=agent, 
-        obs=obs, 
-        max_inventory=max_inv, 
-        base_trade_size=base_sz
-    )
-    state.is_running = True
-    state.is_quoting = True
+    # 1. Fetch hyperparams fast (doesn't require ML libs)
+    max_inv, base_sz, kappa_val = fetch_model_hyperparameters(req.model_filename)
+    manager.booting.add(clean_sym)
     
-    manager.daemons[clean_sym] = state
-    asyncio.create_task(run_autonomous_daemon(state))
+    # 2. Async wrapper for the heavy boot process
+    async def _boot_task():
+        print(f"[Control Plane] Allocating C++ bare-metal daemon for {req.symbol} in background...")
+        try:
+            env, agent, obs, max_inv_out, base_sz_out = await asyncio.to_thread(
+                boot_engine_and_model, req.symbol, req.model_filename, max_inv, base_sz, kappa_val
+            )
+            state = EngineState(
+                symbol=req.symbol, 
+                model_filename=req.model_filename, 
+                env=env, 
+                agent=agent, 
+                obs=obs, 
+                max_inventory=max_inv_out, 
+                base_trade_size=base_sz_out
+            )
+            state.is_running = True
+            state.is_quoting = True
+            
+            manager.daemons[clean_sym] = state
+            asyncio.create_task(run_autonomous_daemon(state))
+        except Exception as e:
+            print(f"[Control Plane ERROR] Background C++ allocation failure: {e}")
+        finally:
+            if clean_sym in manager.booting:
+                manager.booting.remove(clean_sym)
+
+    background_tasks.add_task(_boot_task)
     
-    return {"status": "success", "message": f"Autonomous daemon deployed for {req.symbol}", "max_inventory": max_inv, "base_trade_size": base_sz}
+    return {"status": "success", "message": f"Autonomous daemon booting in background for {req.symbol}", "max_inventory": max_inv, "base_trade_size": base_sz}
 
 @router.post("/api/engine/toggle_quoting")
 async def toggle_quoting(symbol: str = Query(...)):
