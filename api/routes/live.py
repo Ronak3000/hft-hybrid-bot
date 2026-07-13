@@ -271,7 +271,7 @@ async def run_autonomous_daemon(state: EngineState):
                 
                 if is_first_tick:
                     print(f"[Daemon] Seeding initial market alignment for {state.symbol}: ${current_tick['price']}")
-                    raw_env = cast(TradingEnv, state.env.unwrapped)
+                    raw_env = cast(Any, state.env.unwrapped)
                     raw_env.live_price = float(str(current_tick["price"]))
                     state.obs, _ = await asyncio.to_thread(state.env.reset)
                     is_first_tick = False
@@ -381,7 +381,7 @@ async def toggle_quoting(symbol: str = Query(...)):
     state.is_quoting = not state.is_quoting
     
     # Sync immediately down to the physical environment instance
-    raw_env = cast(TradingEnv, state.env.unwrapped)
+    raw_env = cast(Any, state.env.unwrapped)
     raw_env.is_quoting = state.is_quoting
     
     status_str = "ENTERED MARKET (Quoting Active)" if state.is_quoting else "LEFT MARKET (Quoting Paused)"
