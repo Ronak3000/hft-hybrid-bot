@@ -153,9 +153,35 @@ def fetch_model_hyperparameters(model_filename: str):
 # =====================================================================
 # 3. BACKGROUND WORKER HELPERS
 # =====================================================================
+def _ensure_model_downloaded(model_filename: str, model_path: str):
+    """Download model .zip from Supabase Storage if not present locally."""
+    if os.path.exists(model_path):
+        return  # Already present, nothing to do
+
+    if not supabase_client:
+        raise FileNotFoundError(
+            f"Model '{model_filename}' not found locally and Supabase is unavailable to download it."
+        )
+
+    print(f"[Daemon] Model not found locally — downloading '{model_filename}' from Supabase Storage...")
+    try:
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        response = supabase_client.storage.from_("models").download(model_filename)
+        with open(model_path, "wb") as f:
+            f.write(response)
+        print(f"[Daemon] Model downloaded successfully to {model_path}")
+    except Exception as e:
+        raise FileNotFoundError(
+            f"Failed to download model '{model_filename}' from Supabase Storage bucket 'models': {e}"
+        )
+
+
 def boot_engine_and_model(symbol: str, model_filename: str):
     model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), f"../../engine/saved_models/{model_filename}"))
     max_inv, base_sz, kappa_val = fetch_model_hyperparameters(model_filename)
+
+    # Auto-download the model from Supabase Storage if running on an ephemeral server
+    _ensure_model_downloaded(model_filename, model_path)
 
     env = TradingEnv(symbol=symbol.upper(), max_inventory=max_inv, base_trade_size=base_sz, kappa=kappa_val, live_mode=True) 
     agent = PPO.load(model_path, env=env)
