@@ -18,6 +18,8 @@ The project is under active validation. It is not an exchange, brokerage system,
   and deterministic replay.
 - Deterministic causal L2 feature generation for spread, microprice, depth
   imbalance, and Level-1 order-flow imbalance, with source-linked manifests.
+- Timestamp-based forward-return labels that cannot cross sequence segments,
+  plus chronological train/validation/test splits with boundary purging.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
 
@@ -64,6 +66,8 @@ See [the Phase 2 guide](docs/phase2-l2-data.md) for the L2 sequencing model,
 capture command, integrity verification, and current research limitations.
 The follow-on [causal feature guide](docs/phase2-l2-features.md) defines the
 formulas, leakage boundary, reproducibility metadata, and feature-build command.
+[The labels and splits guide](docs/phase2-labels-splits.md) explains timestamp
+horizons, gap isolation, chronological evaluation, and purging at boundaries.
 
 ## Repository layout
 
@@ -145,7 +149,7 @@ Open `http://localhost:3000`.
 The intended progression is:
 
 1. Matching correctness and invariant tests (baseline implemented; property/fuzz coverage will continue to expand).
-2. Sequence-valid L2 snapshot/delta capture and deterministic replay.
+2. Sequence-valid L2 capture, causal features, timestamp labels, and purged chronological splits (initial pipeline implemented; substantial multi-session collection remains).
 3. Queue-aware paper execution with latency, fees, and auditable accounting.
 4. Fixed-spread, inventory heuristic, Avellaneda-Stoikov, random, and PPO baselines.
 5. Hidden Markov Model regime probabilities using causal order-flow features.
