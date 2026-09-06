@@ -21,6 +21,9 @@ The project is under active validation. It is not an exchange, brokerage system,
   imbalance, and Level-1 order-flow imbalance, with source-linked manifests.
 - Timestamp-based forward-return labels that cannot cross sequence segments,
   plus chronological train/validation/test splits with boundary purging.
+- A deterministic, exact-decimal paper-execution core with configurable order
+  and cancel latency, conservative queue-ahead approximation, maker fees or
+  rebates, inventory limits, and auditable fill records.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
 
@@ -53,11 +56,16 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
 
 - The L2 pipeline currently supports Binance Spot only and has not yet produced a published research dataset window.
 - The OHLCV-derived worker still generates execute events with unrelated order IDs, so those events normally cannot identify a resting order even though replay now supports partial execution correctly.
-- The current tests cover deterministic engine behavior but do not yet model participant cash accounts; cash and inventory conservation belong in the execution simulator phase.
+- The C++ matching engine intentionally does not model participant accounts.
+  The separate paper simulator tests cash, inventory, fees, and turnover, but it
+  is not an exchange clearing or reconciliation system.
 - The historical RL environment has not yet demonstrated meaningful fills or PPO learning.
 - Exact queue position is unobservable from market-by-price L2. A documented
-  queue-ahead approximation, configurable latency, adverse selection, and
-  complete fee accounting are not yet modeled.
+  conservative queue-ahead approximation is implemented, but displayed
+  cancellations currently receive no queue credit.
+- The new execution core is not yet connected to the Gymnasium environment or
+  a full-capture policy runner. P&L attribution and adverse-selection horizons
+  remain to be added before PPO work.
 - No checked-in experiment demonstrates PPO outperforming fixed-spread, inventory-aware, Avellaneda-Stoikov, random, or other baselines.
 - No claim of cross-asset transfer, profitability, drawdown reduction, or adverse-selection reduction has been validated.
 - The `Order` type is not declared `alignas(64)`; only the surrounding slab allocation requests 64-byte alignment.
@@ -74,6 +82,8 @@ horizons, gap isolation, chronological evaluation, and purging at boundaries.
 [The real-time market-data guide](docs/phase3-realtime-market-data.md) explains
 the co-captured trade stream, its integrity checks, and what it can and cannot
 support in the upcoming execution simulator.
+[The execution-simulator guide](docs/phase4-queue-simulator.md) defines the
+latency, queue, fill, fee, and accounting assumptions used by the new core.
 
 ## Repository layout
 
@@ -156,7 +166,7 @@ The intended progression is:
 
 1. Matching correctness and invariant tests (baseline implemented; property/fuzz coverage will continue to expand).
 2. Sequence-valid L2/trade co-capture, causal features, timestamp labels, and purged chronological splits (initial pipeline implemented; substantial multi-session collection remains).
-3. Queue-aware paper execution approximations with latency, fees, and auditable accounting.
+3. Queue-aware paper execution approximations with latency, fees, and auditable accounting (core implemented; capture-policy runner and P&L attribution remain).
 4. Fixed-spread, inventory heuristic, Avellaneda-Stoikov, random, and PPO baselines.
 5. Improve PPO only after the simulator and deterministic baselines are credible; treat Hidden Markov Model regime probabilities as an optional research extension, not a prerequisite.
 6. Chronological, multi-seed out-of-sample evaluation with confidence intervals.
