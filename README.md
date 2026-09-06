@@ -35,6 +35,9 @@ The project is under active validation. It is not an exchange, brokerage system,
   for the Avellaneda–Stoikov baseline, plus frozen-parameter multi-session
   evaluation with content-hash leakage checks and deterministic paired
   session-bootstrap intervals.
+- Immutable study-plan manifests, planned-session capture, and deterministic
+  dataset audits enforcing chronological non-overlap, frozen quality thresholds,
+  source identity, and duplicate-content rejection.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
 
@@ -107,6 +110,9 @@ random control, Avellaneda–Stoikov units, and bounded sensitivity grid.
 [The Phase 7 guide](docs/phase7-calibration-evaluation.md) explains training-only
 calibration, source-overlap rejection, frozen multi-session evaluation, and
 paired session-level intervals.
+[The Phase 8 guide](docs/phase8-study-collection.md) gives the beginner workflow
+for sealing a study plan, collecting sessions in order, and auditing the final
+dataset before calibration or PPO.
 
 ## Repository layout
 
@@ -191,10 +197,11 @@ The intended progression is:
 2. Sequence-valid L2/trade co-capture, causal features, timestamp labels, and purged chronological splits (initial pipeline implemented; substantial multi-session collection remains).
 3. Queue-aware paper execution approximations with latency, fees, auditable accounting, capture replay, and initial P&L attribution (implemented; sensitivity studies remain).
 4. Fixed-spread, inventory-skew, seeded-random, and parameterized Avellaneda–Stoikov baselines plus initial sensitivity tooling (implemented).
-5. Training-only model calibration and frozen, paired, session-level evaluation tooling (implemented; substantial chronological data collection and the final study remain).
-6. Improve PPO only after the simulator and deterministic baselines are credible; treat Hidden Markov Model regime probabilities as an optional research extension, not a prerequisite.
-7. Chronological, multi-seed PPO evaluation against every frozen baseline with session-level confidence intervals.
-8. Reproducible benchmark reports and an offline demo.
+5. Training-only model calibration and frozen, paired, session-level evaluation tooling (implemented).
+6. Predeclared chronological study plans and multi-session data-quality audits (implemented; the substantial real-data collection remains).
+7. Improve PPO only after the simulator and deterministic baselines are credible; treat Hidden Markov Model regime probabilities as an optional research extension, not a prerequisite.
+8. Chronological, multi-seed PPO evaluation against every frozen baseline with session-level confidence intervals.
+9. Reproducible benchmark reports and an offline demo.
 
 ## Responsible-use note
 

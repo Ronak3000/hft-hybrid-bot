@@ -22,6 +22,15 @@ from .as_calibration import (
     load_calibration,
     write_calibration,
 )
+from .study_plan import (
+    STUDY_AUDIT_SCHEMA_VERSION,
+    STUDY_PLAN_SCHEMA_VERSION,
+    audit_study,
+    create_study_plan,
+    load_study_plan,
+    planned_capture_path,
+    write_study_plan,
+)
 
 __all__ = [
     "FEATURE_COLUMNS",
@@ -40,4 +49,11 @@ __all__ = [
     "calibrate_avellaneda_stoikov",
     "load_calibration",
     "write_calibration",
+    "STUDY_AUDIT_SCHEMA_VERSION",
+    "STUDY_PLAN_SCHEMA_VERSION",
+    "audit_study",
+    "create_study_plan",
+    "load_study_plan",
+    "planned_capture_path",
+    "write_study_plan",
 ]
