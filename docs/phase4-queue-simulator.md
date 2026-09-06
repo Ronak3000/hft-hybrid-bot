@@ -89,10 +89,9 @@ extension.
 
 ## What remains before PPO
 
-1. Build a full-capture runner that handles the snapshot buffering boundary and
-   invokes a strategy only after the reconstructed book reaches decision time.
-2. Add fixed-spread, inventory-skew, Avellaneda–Stoikov, and random policies on
-   exactly the same event stream.
+1. The full-capture runner and the fixed-spread/inventory-skew policies are now
+   implemented in [the Phase 5 guide](phase5-capture-baselines.md).
+2. Add Avellaneda–Stoikov and random policies on exactly the same event stream.
 3. Attribute P&L into spread capture, signed fees/rebates, inventory mark-to-
    market, and post-fill adverse selection at fixed time horizons.
 4. Add quote uptime, fill rate, turnover, inventory distribution, rejection

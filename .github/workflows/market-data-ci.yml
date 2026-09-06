@@ -10,9 +10,11 @@ on:
       - "scripts/build_l2_features.py"
       - "scripts/prepare_l2_dataset.py"
       - "scripts/replay_l2.py"
+      - "scripts/evaluate_capture_baselines.py"
       - "tests/test_l2_*.py"
       - "tests/test_realtime_capture.py"
       - "tests/test_queue_simulator.py"
+      - "tests/test_capture_runner.py"
       - "tests/test_research_dataset.py"
       - ".github/workflows/market-data-ci.yml"
   pull_request:
@@ -24,9 +26,11 @@ on:
       - "scripts/build_l2_features.py"
       - "scripts/prepare_l2_dataset.py"
       - "scripts/replay_l2.py"
+      - "scripts/evaluate_capture_baselines.py"
       - "tests/test_l2_*.py"
       - "tests/test_realtime_capture.py"
       - "tests/test_queue_simulator.py"
+      - "tests/test_capture_runner.py"
       - "tests/test_research_dataset.py"
       - ".github/workflows/market-data-ci.yml"
   workflow_dispatch:
