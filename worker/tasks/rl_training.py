@@ -92,7 +92,7 @@ def train_ppo_model(self, symbol, start_date, end_date, epochs, learning_rate, e
         self.update_state(state='PENDING', meta={'status': 'Downloading historical data...'})
         download_binance_data(symbol, start_date, end_date, csv_filepath)
 
-        # 2. Initialize the TRUE Environment with dynamic market parameters
+        # 2. Initialize the experimental environment with dynamic parameters
         print(f"[Worker] Allocating C++ LOB. Base Size: {base_trade_size} | Max Inv: {max_inventory} | Penalty: {penalty_factor}")
         env = TradingEnv(
             symbol=symbol, start_date=start_date, end_date=end_date,

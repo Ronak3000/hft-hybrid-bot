@@ -85,7 +85,8 @@ def fetch_massive_binance_data(filename="test_data.csv", target_trades=400000):
 
             time.sleep(0.1) # Respect API rate limits
 
-    print(f"\n\nSuccess! Reconstructed Real Limit Order Book saved to {filepath}.")
+    print(f"\n\nSuccess! Binance aggregate trades converted to engine input rows at {filepath}.")
+    print("Note: aggregate trades are executions, not a reconstructed Level-2 order book.")
 
 if __name__ == "__main__":
     fetch_massive_binance_data()

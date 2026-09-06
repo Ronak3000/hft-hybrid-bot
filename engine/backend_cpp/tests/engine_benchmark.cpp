@@ -13,7 +13,7 @@
 
 using namespace std::chrono;
 
-// Helper to print institutional telemetry lines
+// Helpers for readable synthetic microbenchmark output.
 void print_separator() {
     std::cout << "========================================================================" << std::endl;
 }
@@ -25,7 +25,7 @@ void print_section(const std::string& name) {
 
 int main() {
     print_separator();
-    std::cout << "      INSTITUTIONAL REGRESSIVE PERFORMANCE PROFILE & BENCHMARK          " << std::endl;
+    std::cout << "        SINGLE-THREADED IN-PROCESS SYNTHETIC MICROBENCHMARK             " << std::endl;
     std::cout << "========================================================================" << std::endl;
 
     const int ITERATIONS = 5000000; // 5 Million ops per sub-test
@@ -121,16 +121,16 @@ int main() {
         double throughput = (static_cast<double>(ITERATIONS) / (duration / 1e9)) / 1e6;
         double latency = static_cast<double>(duration) / ITERATIONS;
 
-        std::cout << "  [+] Bitboard Operations Processed : " << ITERATIONS << " cycles" << std::endl;
-        std::cout << "  [+] Total Discovery Throughput    : " << throughput << " Million searches/sec" << std::endl;
-        std::cout << "  [+] Mean Discovery Latency        : " << latency << " ns / search" << std::endl;
+        std::cout << "  [+] Compound Loop Iterations      : " << ITERATIONS << std::endl;
+        std::cout << "  [+] Compound Loop Throughput      : " << throughput << " Million iterations/sec" << std::endl;
+        std::cout << "  [+] Mean Compound Iteration Time  : " << latency << " ns / iteration" << std::endl;
         std::cout << "  [+] Hardware Checksum Validation  : " << dummy_checksum << " (Volatile Anti-Optimization Guard)" << std::endl;
     }
 
     // ========================================================================
-    // BENCHMARK III: HIGH-FREQUENCY EXCHANGE TICK INGESTION
+    // BENCHMARK III: SYNTHETIC IN-PROCESS TICK UPDATE LOOP
     // ========================================================================
-    print_section("BENCHMARK III: WEBSOCKET HIGH-FREQUENCY TICK INGESTION");
+    print_section("BENCHMARK III: SYNTHETIC IN-PROCESS TICK UPDATES");
     {
         OrderBook engine;
         auto start = high_resolution_clock::now();
@@ -144,16 +144,16 @@ int main() {
         double throughput = (static_cast<double>(ITERATIONS) / (duration / 1e9)) / 1e6;
         double latency = static_cast<double>(duration) / ITERATIONS;
 
-        std::cout << "  [+] Ingested Feed Ticks         : " << ITERATIONS << " updates" << std::endl;
+        std::cout << "  [+] Attempted Tick Updates      : " << ITERATIONS << " updates" << std::endl;
         #pragma use footprint
-        std::cout << "  [+] Live Telemetry Throughput   : " << throughput << " Million ticks/sec" << std::endl;
-        std::cout << "  [+] Mean Ingestion Latency      : " << latency << " ns / tick" << std::endl;
+        std::cout << "  [+] In-Process Update Throughput: " << throughput << " Million updates/sec" << std::endl;
+        std::cout << "  [+] Mean In-Process Loop Time   : " << latency << " ns / update" << std::endl;
     }
 
     // ========================================================================
-    // BENCHMARK IV: END-TO-END REGRESSIVE LIFE CYCLE RUN
+    // BENCHMARK IV: MIXED IN-PROCESS ACTION LOOP
     // ========================================================================
-    print_section("BENCHMARK IV: COMPLETE ORDER LIFECYCLE (MIXED INGESTION)");
+    print_section("BENCHMARK IV: MIXED IN-PROCESS ENGINE ACTIONS");
     {
         OrderBook engine;
         
@@ -203,14 +203,14 @@ int main() {
         double latency = static_cast<double>(duration) / ITERATIONS;
 
         std::cout << "  [+] Order Flow Actions Cleared : " << ITERATIONS << " actions" << std::endl;
-        std::cout << "  [+] Executed Cross Matches     : " << cross_count << " orders" << std::endl;
-        std::cout << "  [+] Executed Active Cancels    : " << cancel_count << " orders" << std::endl;
+        std::cout << "  [+] Attempted Crossing Orders : " << cross_count << " orders" << std::endl;
+        std::cout << "  [+] Attempted Cancels         : " << cancel_count << " orders" << std::endl;
         std::cout << "  [+] Full-Cycle Hot Throughput  : " << throughput << " Million actions/sec" << std::endl;
-        std::cout << "  [+] Mean End-to-End Latency    : " << latency << " ns / transaction" << std::endl;
+        std::cout << "  [+] Mean In-Process Loop Time  : " << latency << " ns / attempted action" << std::endl;
     }
 
     print_separator();
-    std::cout << "   BENCHMARK PROFILE VERIFIED COMPLIANT WITH LOW-LATENCY TARGETS        " << std::endl;
+    std::cout << "  PRELIMINARY RESULT: ATTEMPTS ARE NOT YET VALIDATED AS SUCCESSES       " << std::endl;
     print_separator();
     
     return 0;

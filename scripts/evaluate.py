@@ -89,14 +89,14 @@ def main():
             
     print(f"Evaluation complete. Final Net Worth: ${net_worth_history[-1]:.2f}")
     
-    # --- 3-Panel Institutional Plotting ---
+    # --- 3-panel experimental plotting ---
     print("Generating PnL, Price, and Inventory telemetry charts...")
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
     
     # Top Chart: AI Net Worth
     ax1.plot(net_worth_history, color='blue', linewidth=2, label="AI Portfolio Value")
     ax1.axhline(y=1000000, color='red', linestyle='--', alpha=0.5, label="Starting Balance ($1M)")
-    ax1.set_title("HFT AI: Real Historical LOB Backtest", fontsize=14, fontweight='bold')
+    ax1.set_title("Experimental PPO Evaluation on Synthetic Book Events", fontsize=14, fontweight='bold')
     ax1.set_ylabel("Net Worth ($)", fontsize=11)
     ax1.legend(loc="upper left")
     ax1.grid(True, alpha=0.3)

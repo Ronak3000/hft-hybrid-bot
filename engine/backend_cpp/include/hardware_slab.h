@@ -43,7 +43,7 @@ public:
         }
     }
 
-    // Force inline for bare-metal register offset indexing
+    // Small accessor intended to inline in optimized builds.
     inline T& operator[](size_t index) noexcept {
         return data_ptr[index];
     }

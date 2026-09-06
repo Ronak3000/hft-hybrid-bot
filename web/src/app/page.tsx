@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, BrainCircuit, Cpu, LineChart, Play, Shield, TerminalSquare, Zap } from 'lucide-react';
+import { BrainCircuit, Cpu, LineChart, Play, Shield, TerminalSquare, Zap } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -37,16 +37,16 @@ export default function LandingPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            C++ Microstructure Engine Live
+            Research prototype · paper simulation
           </div>
           
           <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 bg-gradient-to-br from-zinc-50 to-zinc-400 bg-clip-text text-transparent">
-            Build Your Own Alpha.<br />
-            <span className="text-emerald-500">Zero Code Required.</span>
+            Study Market Microstructure.<br />
+            <span className="text-emerald-500">Reproduce Every Result.</span>
           </h1>
           
           <p className="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            The first retail HFT platform bridging a bare-metal C++ limit order book with multi-core Reinforcement Learning. Train custom PPO agents overnight. Deploy live tomorrow.
+            An experimental C++ order-book and Python research stack for testing market-making ideas. Current exchange-connected behavior is paper simulation; no orders or funds are routed.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -55,42 +55,42 @@ export default function LandingPage() {
               className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-lg font-semibold transition-all w-full sm:w-auto justify-center shadow-[0_0_40px_-10px_rgba(16,185,129,0.4)]"
             >
               <Play fill="currentColor" size={18} />
-              Start Training a Model
+              Open Paper Simulator
             </Link>
             <Link 
               href="/backtest"
               className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-50 px-8 py-4 rounded-lg font-semibold transition-all w-full sm:w-auto justify-center"
             >
               <LineChart size={18} />
-              View Historical Backtests
+              Inspect Historical Data
             </Link>
           </div>
         </div>
       </section>
 
-      {/* The "Train Tonight, Trade Tomorrow" Workflow */}
+      {/* Research workflow */}
       <section id="features" className="py-24 px-6 bg-zinc-900/50 border-y border-zinc-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold tracking-tight mb-4">Train Tonight. Trade Tomorrow.</h2>
-            <p className="text-zinc-400 max-w-2xl mx-auto">Stop relying on black-box strategies. Take control of the machine learning pipeline and parameterize your own risk aversion.</p>
+            <h2 className="text-3xl font-bold tracking-tight mb-4">Build. Test. Measure.</h2>
+            <p className="text-zinc-400 max-w-2xl mx-auto">The project is being rebuilt around correctness tests, deterministic replay, explicit assumptions, and out-of-sample strategy evaluation.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard 
               icon={<LineChart />}
               title="1. Select Historical Data"
-              description="Choose your asset pair and slice exact historical timeframes. Target specific market regimes, from high-volatility flash crashes to sideways chop."
+              description="Inspect exchange OHLCV data today. Sequence-valid Level-2 snapshot and delta replay is planned and is not yet implemented."
             />
             <FeatureCard 
               icon={<BrainCircuit />}
               title="2. Tweak RL Parameters"
-              description="Adjust PPO hyperparameters like entropy, learning rate, and batch size. Or, let our optimized institutional defaults handle the heavy lifting while you sleep."
+              description="Run experimental PPO training with configurable risk parameters. Learning and strategy performance have not yet been validated."
             />
             <FeatureCard 
               icon={<Zap />}
-              title="3. Deploy to C++ Engine"
-              description="Wake up to a fully trained policy network. Inject the weights directly into our sub-millisecond C++ matching engine for live execution."
+              title="3. Run Paper Simulation"
+              description="Apply a saved policy to Binance aggregate trade updates using local fill logic. This is simulation, not exchange execution."
             />
           </div>
         </div>
@@ -100,22 +100,22 @@ export default function LandingPage() {
       <section id="architecture" className="py-24 px-6">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight mb-6">Institutional Grade Infrastructure</h2>
+            <h2 className="text-3xl font-bold tracking-tight mb-6">Research Prototype Architecture</h2>
             <ul className="space-y-6">
               <SpecItem 
                 icon={<Cpu />}
-                title="Bare-Metal Execution"
-                description="O(1) limit order book execution utilizing L1 cache-aligned memory slabs to bypass dynamic allocation overhead."
+                title="C++ Matching Prototype"
+                description="Price-time matching uses intrusive FIFO queues, preallocated order storage, fixed price-level slabs, and hierarchical bitsets."
               />
               <SpecItem 
                 icon={<Shield />}
-                title="Mathematical Safety Rails"
-                description="Hard-coded Avellaneda-Stoikov reservation price skewing overrides the AI to prevent toxic adverse selection."
+                title="Experimental Risk Controls"
+                description="The environment includes inventory limits and Avellaneda-Stoikov-inspired quote calculations; their effectiveness remains to be evaluated."
               />
               <SpecItem 
                 icon={<TerminalSquare />}
-                title="Zero-Copy Telemetry"
-                description="Real-time Pybind11 memory bridges stream live execution data to your browser at 60 FPS without DOM lag."
+                title="Observable Service Stack"
+                description="Pybind11 connects selected engine operations to Python, while FastAPI and WebSockets expose paper-simulation state to the interface."
               />
             </ul>
           </div>
@@ -129,12 +129,12 @@ export default function LandingPage() {
               <span className="text-xs text-zinc-500 ml-2 font-mono">hft_engine_worker.py</span>
             </div>
             <div className="p-6 font-mono text-sm text-zinc-400 space-y-2">
-              <p><span className="text-emerald-400">root@ApexHFT</span>:~$ ./start_training --symbol BTC/USDT --epochs 500</p>
-              <p className="text-zinc-500">[INFO] Initializing Gymnasium environment...</p>
-              <p className="text-zinc-500">[INFO] Loading 30 days of LOB data (34.2 GB)...</p>
-              <p className="text-zinc-300">Epoch 1/500 | Loss: 0.842 | Reward: -12.4</p>
-              <p className="text-zinc-300">Epoch 2/500 | Loss: 0.612 | Reward: 4.1</p>
-              <p className="animate-pulse text-emerald-400">Training in progress... ETA: 04:12:33</p>
+              <p><span className="text-emerald-400">root@ApexHFT</span>:~$ cmake --build engine/backend_cpp/build</p>
+              <p className="text-zinc-500">[STATUS] Matching correctness suite: planned</p>
+              <p className="text-zinc-500">[STATUS] Sequence-valid L2 replay: planned</p>
+              <p className="text-zinc-500">[SCOPE] Benchmark: single-threaded, in-process, synthetic</p>
+              <p className="text-zinc-300">[LIMIT] Historical PPO learning is not yet demonstrated</p>
+              <p className="animate-pulse text-emerald-400">Research validation in progress...</p>
             </div>
           </div>
         </div>
