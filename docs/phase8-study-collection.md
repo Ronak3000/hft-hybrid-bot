@@ -77,7 +77,8 @@ The final audit passes only when every planned session is valid. It records:
 
 - the plan hash and every capture hash;
 - start/end local receive times and duration;
-- local receive-timestamp regressions, which must remain zero;
+- WebSocket receive-timestamp regressions, which must remain zero (the
+  documented REST-snapshot/buffer serialization boundary is excluded);
 - applied and stale depth deltas;
 - accepted, duplicate, and out-of-order trades;
 - depth gaps, trade-ID gaps, and disconnects;
