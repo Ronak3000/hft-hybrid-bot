@@ -134,9 +134,11 @@ int main() {
     {
         OrderBook engine;
         auto start = high_resolution_clock::now();
+        uint64_t state_checksum = 0;
 
         for (int i = 0; i < ITERATIONS; ++i) {
             engine.inject_live_tick(random_prices[i], 500, random_sides[i]);
+            state_checksum ^= engine.get_live_state_checksum() + static_cast<uint64_t>(i);
         }
 
         auto end = high_resolution_clock::now();
@@ -145,9 +147,9 @@ int main() {
         double latency = static_cast<double>(duration) / ITERATIONS;
 
         std::cout << "  [+] Attempted Tick Updates      : " << ITERATIONS << " updates" << std::endl;
-        #pragma use footprint
         std::cout << "  [+] In-Process Update Throughput: " << throughput << " Million updates/sec" << std::endl;
         std::cout << "  [+] Mean In-Process Loop Time   : " << latency << " ns / update" << std::endl;
+        std::cout << "  [+] State Checksum              : " << state_checksum << std::endl;
     }
 
     // ========================================================================
@@ -164,8 +166,12 @@ int main() {
 
         auto start = high_resolution_clock::now();
         uint64_t dynamic_order_id = 100000;
-        uint64_t cross_count = 0;
-        uint64_t cancel_count = 0;
+        uint64_t attempted_crosses = 0;
+        uint64_t successful_crosses = 0;
+        uint64_t attempted_cancels = 0;
+        uint64_t successful_cancels = 0;
+        uint64_t accepted_orders = 0;
+        uint64_t rejected_orders = 0;
 
         for (int i = 0; i < ITERATIONS; ++i) {
             uint64_t target_price = random_prices[i];
@@ -177,23 +183,31 @@ int main() {
                 if (current_side == 0) {
                     int ask = engine.get_best_ask();
                     uint64_t crossing_price = (ask != -1) ? static_cast<uint64_t>(ask) : target_price + 5;
-                    engine.process_order(dynamic_order_id++, crossing_price, 5, 0);
+                    const ProcessResult result = engine.process_order(dynamic_order_id++, crossing_price, 5, 0);
+                    successful_crosses += result.executed_quantity > 0;
+                    accepted_orders += result.fully_accepted();
+                    rejected_orders += !result.fully_accepted();
                 } else {
                     int bid = engine.get_best_bid();
                     uint64_t crossing_price = (bid != -1) ? static_cast<uint64_t>(bid) : (target_price > 5 ? target_price - 5 : 1);
-                    engine.process_order(dynamic_order_id++, crossing_price, 5, 1);
+                    const ProcessResult result = engine.process_order(dynamic_order_id++, crossing_price, 5, 1);
+                    successful_crosses += result.executed_quantity > 0;
+                    accepted_orders += result.fully_accepted();
+                    rejected_orders += !result.fully_accepted();
                 }
-                cross_count++;
+                attempted_crosses++;
             } 
             else if (i % 5 == 0) {
                 // Cancel previous order id bounds to test memory release stability
                 uint64_t target_cancel_id = (dynamic_order_id > 20000) ? (dynamic_order_id - 15000) : 1;
-                engine.cancel_order(target_cancel_id);
-                cancel_count++;
+                successful_cancels += engine.cancel_order(target_cancel_id);
+                attempted_cancels++;
             } 
             else {
                 // Post passive resting volume to the cache lines
-                engine.process_order(dynamic_order_id++, target_price, 15, current_side);
+                const ProcessResult result = engine.process_order(dynamic_order_id++, target_price, 15, current_side);
+                accepted_orders += result.fully_accepted();
+                rejected_orders += !result.fully_accepted();
             }
         }
 
@@ -202,15 +216,20 @@ int main() {
         double throughput = (static_cast<double>(ITERATIONS) / (duration / 1e9)) / 1e6;
         double latency = static_cast<double>(duration) / ITERATIONS;
 
-        std::cout << "  [+] Order Flow Actions Cleared : " << ITERATIONS << " actions" << std::endl;
-        std::cout << "  [+] Attempted Crossing Orders : " << cross_count << " orders" << std::endl;
-        std::cout << "  [+] Attempted Cancels         : " << cancel_count << " orders" << std::endl;
+        std::cout << "  [+] Attempted Engine Actions   : " << ITERATIONS << " actions" << std::endl;
+        std::cout << "  [+] Attempted Crossing Orders : " << attempted_crosses << std::endl;
+        std::cout << "  [+] Crosses With >= 1 Fill    : " << successful_crosses << std::endl;
+        std::cout << "  [+] Attempted Cancels         : " << attempted_cancels << std::endl;
+        std::cout << "  [+] Successful Cancels        : " << successful_cancels << std::endl;
+        std::cout << "  [+] Fully Accepted Orders     : " << accepted_orders << std::endl;
+        std::cout << "  [+] Partially/Fully Rejected  : " << rejected_orders << std::endl;
+        std::cout << "  [+] Final Active Orders       : " << engine.get_active_order_count() << std::endl;
         std::cout << "  [+] Full-Cycle Hot Throughput  : " << throughput << " Million actions/sec" << std::endl;
         std::cout << "  [+] Mean In-Process Loop Time  : " << latency << " ns / attempted action" << std::endl;
     }
 
     print_separator();
-    std::cout << "  PRELIMINARY RESULT: ATTEMPTS ARE NOT YET VALIDATED AS SUCCESSES       " << std::endl;
+    std::cout << "  OUTCOMES COUNTED; LATENCY DISTRIBUTIONS AND AFFINITY STILL PENDING    " << std::endl;
     print_separator();
     
     return 0;

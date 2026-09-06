@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include <cstdint>
 
 enum class Side : uint8_t {
@@ -17,6 +18,7 @@ struct Order {
 
     void reset() {
         order_id = 0; price = 0; quantity = 0;
+        side = Side::BUY;
         next = nullptr; prev = nullptr;
     }
 };
@@ -24,7 +26,7 @@ struct Order {
 struct PriceLevel {
     Order* head = nullptr;
     Order* tail = nullptr;
-    uint32_t total_volume = 0; // The O(1) Cache
+    uint64_t total_volume = 0;
 
     void push_back(Order* order) {
         if (!head) {
@@ -39,7 +41,7 @@ struct PriceLevel {
     }
 
     void remove_order(Order* order) {
-        // Event 2 & 3: Order Canceled or Fully Filled
+        assert(order != nullptr && order->quantity <= total_volume);
         total_volume -= order->quantity; 
         
         if (order->prev) order->prev->next = order->next;

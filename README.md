@@ -10,6 +10,8 @@ The project is under active validation. It is not an exchange, brokerage system,
 - Intrusive FIFO queues at each price level.
 - A preallocated order pool and fixed-size price-level storage.
 - Hierarchical bitsets for locating the best bid and ask.
+- Typed, allocation-free order outcomes covering executed, resting, and rejected quantity.
+- CTest correctness coverage for validation, FIFO, price priority, partial fills, cancellation, pool exhaustion, reset, CSV replay, bit-tree boundaries, and deterministic differential testing.
 - Python access to selected engine operations through Pybind11.
 - A Gymnasium environment and Stable-Baselines3 PPO training path.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
@@ -37,14 +39,13 @@ An independent Windows/MSYS2 reproduction compiled the existing benchmark with `
 | Hierarchical bit-tree loop | 87.2 million iterations/second |
 | Hierarchical bit-tree loop | 11.5 ns mean per iteration |
 
-These figures are single-threaded, in-process synthetic microbenchmark observations. They are not network, exchange round-trip, wire-to-wire, or production end-to-end latency measurements. The current benchmark counts attempted operations rather than verified successful operations and does not report latency percentiles, CPU affinity, or complete hardware metadata. Treat the numbers as preliminary engineering measurements, not performance guarantees.
+These figures are single-threaded, in-process synthetic microbenchmark observations. They are not network, exchange round-trip, wire-to-wire, or production end-to-end latency measurements. The benchmark now reports fully accepted orders, rejected orders, successful crosses, and successful cancels separately, but it still lacks latency percentiles, CPU affinity, and complete hardware metadata. Treat the numbers as preliminary engineering measurements, not performance guarantees.
 
 ## Known limitations
 
 - There is no genuine L2 snapshot-and-delta ingestion pipeline yet.
-- Historical execute messages are not modeled with correct partial-fill semantics.
-- Matching-engine correctness tests and CTest targets have not yet been added.
-- Duplicate IDs, invalid price ranges, pool exhaustion, and reset behavior need stricter handling.
+- The OHLCV-derived worker still generates execute events with unrelated order IDs, so those events normally cannot identify a resting order even though replay now supports partial execution correctly.
+- The current tests cover deterministic engine behavior but do not yet model participant cash accounts; cash and inventory conservation belong in the execution simulator phase.
 - The historical RL environment has not yet demonstrated meaningful fills or PPO learning.
 - Queue position, configurable latency, adverse selection, and complete fee accounting are not yet modeled.
 - No checked-in experiment demonstrates PPO outperforming fixed-spread, inventory-aware, Avellaneda-Stoikov, random, or other baselines.
@@ -76,7 +77,34 @@ cmake -S engine/backend_cpp -B engine/backend_cpp/build -DCMAKE_BUILD_TYPE=Relea
 cmake --build engine/backend_cpp/build --config Release
 ```
 
-The current CMake file builds the `hft_engine` Python extension only. A first-class benchmark and CTest target are planned but do not exist yet.
+### Run the C++ correctness suite
+
+This configuration skips the Python extension so engine tests only require a C++20 compiler and CMake:
+
+```bash
+cmake -S engine/backend_cpp -B engine/backend_cpp/build-tests \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DAPEXHFT_BUILD_PYTHON=OFF \
+  -DBUILD_TESTING=ON
+cmake --build engine/backend_cpp/build-tests --config Release
+ctest --test-dir engine/backend_cpp/build-tests --output-on-failure -C Release
+```
+
+The `engine_correctness_tests` executable includes both focused scenarios and a seeded 5,000-operation comparison against a slower reference order book.
+
+Sanitizer instrumentation is available with `-DAPEXHFT_ENABLE_SANITIZERS=ON` when the selected GCC or Clang installation includes AddressSanitizer and UndefinedBehaviorSanitizer runtimes.
+
+### Run the synthetic benchmark
+
+```bash
+cmake -S engine/backend_cpp -B engine/backend_cpp/build-bench \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DAPEXHFT_BUILD_PYTHON=OFF \
+  -DAPEXHFT_BUILD_BENCHMARKS=ON
+cmake --build engine/backend_cpp/build-bench --config Release
+```
+
+Run `engine_benchmark` from the generated build directory. Results remain synthetic and in-process.
 
 ### Start the API
 
@@ -106,7 +134,7 @@ Open `http://localhost:3000`.
 
 The intended progression is:
 
-1. Matching correctness and invariant tests.
+1. Matching correctness and invariant tests (baseline implemented; property/fuzz coverage will continue to expand).
 2. Sequence-valid L2 snapshot/delta capture and deterministic replay.
 3. Queue-aware paper execution with latency, fees, and auditable accounting.
 4. Fixed-spread, inventory heuristic, Avellaneda-Stoikov, random, and PPO baselines.

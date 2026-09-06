@@ -1,0 +1,60 @@
+name: C++ engine correctness
+
+on:
+  push:
+    paths:
+      - "engine/backend_cpp/**"
+      - ".github/workflows/engine-ci.yml"
+  pull_request:
+    paths:
+      - "engine/backend_cpp/**"
+      - ".github/workflows/engine-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  correctness:
+    name: ${{ matrix.os }} release tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >-
+          cmake -S engine/backend_cpp -B engine/backend_cpp/build-ci
+          -DCMAKE_BUILD_TYPE=Release
+          -DAPEXHFT_BUILD_PYTHON=OFF
+          -DAPEXHFT_BUILD_BENCHMARKS=OFF
+          -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build engine/backend_cpp/build-ci --config Release --parallel
+      - name: Test
+        run: ctest --test-dir engine/backend_cpp/build-ci --output-on-failure -C Release
+
+  sanitizers:
+    name: Linux ASan and UBSan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >-
+          cmake -S engine/backend_cpp -B engine/backend_cpp/build-sanitize
+          -DCMAKE_BUILD_TYPE=Debug
+          -DAPEXHFT_BUILD_PYTHON=OFF
+          -DAPEXHFT_BUILD_BENCHMARKS=OFF
+          -DBUILD_TESTING=ON
+          -DAPEXHFT_ENABLE_SANITIZERS=ON
+      - name: Build
+        run: cmake --build engine/backend_cpp/build-sanitize --parallel
+      - name: Test
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: ctest --test-dir engine/backend_cpp/build-sanitize --output-on-failure
