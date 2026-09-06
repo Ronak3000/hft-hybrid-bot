@@ -92,6 +92,7 @@ class SimulatedOrder:
     status: OrderStatus = OrderStatus.PENDING
     queue_ahead: Decimal = Decimal("0")
     rejection_reason: str | None = None
+    cancel_effective_time_ns: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,9 +182,10 @@ class QueueAwareSimulator:
             return False
         if decision_time_ns < order.decision_time_ns:
             raise ValueError("cancel decision cannot precede order submission")
-        self._schedule(
-            decision_time_ns + self.config.cancel_latency_ns, "cancel", order_id
-        )
+        if order.cancel_effective_time_ns is not None:
+            return False
+        order.cancel_effective_time_ns = decision_time_ns + self.config.cancel_latency_ns
+        self._schedule(order.cancel_effective_time_ns, "cancel", order_id)
         return True
 
     def advance_to(self, received_time_ns: int, book: L2Book) -> None:

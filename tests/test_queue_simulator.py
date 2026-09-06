@@ -187,6 +187,7 @@ class QuoteLifecycleTests(unittest.TestCase):
         order_id = simulator.submit_limit("buy", "101", "1", 0)
         simulator.advance_to(0, book)
         self.assertTrue(simulator.request_cancel(order_id, 10))
+        self.assertFalse(simulator.request_cancel(order_id, 11))
 
         fills = simulator.process_trade(
             _trade(1, "100", "0.1", 14, aggressor="sell"), book
