@@ -125,6 +125,25 @@ class L2Delta:
     asks: tuple[Level, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class MarketTrade:
+    """A public Binance trade, not a fill belonging to this strategy."""
+
+    venue: str
+    symbol: str
+    received_time_ns: int
+    event_time_ms: int
+    trade_time_ms: int
+    trade_id: int
+    price: Decimal
+    quantity: Decimal
+    buyer_is_maker: bool
+
+    @property
+    def aggressor_side(self) -> str:
+        return "sell" if self.buyer_is_maker else "buy"
+
+
 def parse_binance_snapshot(
     payload: Mapping[str, Any], symbol: str, received_time_ns: int
 ) -> L2Snapshot:
@@ -162,6 +181,31 @@ def parse_binance_delta(payload: Mapping[str, Any], received_time_ns: int) -> L2
         final_update_id=final,
         bids=_levels(payload.get("b"), "b", snapshot=False),
         asks=_levels(payload.get("a"), "a", snapshot=False),
+    )
+
+
+def parse_binance_trade(payload: Mapping[str, Any], received_time_ns: int) -> MarketTrade:
+    if not isinstance(payload, Mapping):
+        raise SchemaError("trade payload must be an object")
+    if "data" in payload:
+        payload = payload["data"]
+        if not isinstance(payload, Mapping):
+            raise SchemaError("combined-stream data must be an object")
+    if payload.get("e") != "trade":
+        raise SchemaError("event is not a Binance trade")
+    buyer_is_maker = payload.get("m")
+    if not isinstance(buyer_is_maker, bool):
+        raise SchemaError("m must be a boolean")
+    return MarketTrade(
+        venue="binance_spot",
+        symbol=_symbol(payload.get("s")),
+        received_time_ns=_nonnegative_int(received_time_ns, "received_time_ns"),
+        event_time_ms=_nonnegative_int(payload.get("E"), "E"),
+        trade_time_ms=_nonnegative_int(payload.get("T"), "T"),
+        trade_id=_nonnegative_int(payload.get("t"), "t"),
+        price=_decimal(payload.get("p"), "p", allow_zero=False),
+        quantity=_decimal(payload.get("q"), "q", allow_zero=False),
+        buyer_is_maker=buyer_is_maker,
     )
 
 
@@ -301,7 +345,15 @@ class CaptureWriter:
     def write(self, kind: str, payload: Mapping[str, Any], received_time_ns: int) -> None:
         if self._closed:
             raise RuntimeError("capture writer is closed")
-        if kind not in {"metadata", "snapshot", "delta", "gap", "disconnect"}:
+        if kind not in {
+            "metadata",
+            "snapshot",
+            "delta",
+            "trade",
+            "gap",
+            "trade_gap",
+            "disconnect",
+        }:
             raise ValueError(f"unsupported capture record kind: {kind}")
         record = {
             "kind": kind,
@@ -374,12 +426,18 @@ class ReplaySummary:
     applied_deltas: int
     stale_deltas: int
     gaps: int
+    accepted_trades: int
+    duplicate_trades: int
+    out_of_order_trades: int
+    trade_id_gaps: int
 
 
 def replay_capture(path: str | Path) -> ReplaySummary:
     verify_capture(path)
     book: L2Book | None = None
     snapshots = applied = stale = gaps = 0
+    accepted_trades = duplicate_trades = out_of_order_trades = trade_id_gaps = 0
+    last_trade_id: int | None = None
     with Path(path).open("r", encoding="utf-8") as source:
         for line_number, line in enumerate(source, start=1):
             try:
@@ -397,6 +455,9 @@ def replay_capture(path: str | Path) -> ReplaySummary:
                     raise SchemaError("snapshot appears before metadata")
                 book.load_snapshot(parse_binance_snapshot(payload, book.symbol, received))
                 snapshots += 1
+                # Every live connection starts with a new snapshot. Do not infer
+                # continuity across a reconnect that may have missed trades.
+                last_trade_id = None
             elif kind == "delta":
                 if book is None:
                     raise SchemaError("delta appears before metadata")
@@ -407,12 +468,40 @@ def replay_capture(path: str | Path) -> ReplaySummary:
                     stale += 1
                 elif status is ApplyStatus.GAP:
                     gaps += 1
+            elif kind == "trade":
+                if book is None:
+                    raise SchemaError("trade appears before metadata")
+                trade = parse_binance_trade(payload, received)
+                if trade.symbol != book.symbol or trade.venue != book.venue:
+                    raise SchemaError("trade identity does not match capture metadata")
+                if last_trade_id is None:
+                    accepted_trades += 1
+                    last_trade_id = trade.trade_id
+                elif trade.trade_id == last_trade_id:
+                    duplicate_trades += 1
+                elif trade.trade_id < last_trade_id:
+                    out_of_order_trades += 1
+                else:
+                    if trade.trade_id > last_trade_id + 1:
+                        trade_id_gaps += 1
+                    accepted_trades += 1
+                    last_trade_id = trade.trade_id
             elif kind == "gap":
                 continue
-            elif kind == "disconnect":
+            elif kind in {"trade_gap", "disconnect"}:
                 continue
             else:
                 raise SchemaError(f"unsupported record kind on line {line_number}: {kind}")
     if book is None:
         raise SchemaError("capture has no metadata record")
-    return ReplaySummary(book, snapshots, applied, stale, gaps)
+    return ReplaySummary(
+        book=book,
+        snapshots=snapshots,
+        applied_deltas=applied,
+        stale_deltas=stale,
+        gaps=gaps,
+        accepted_trades=accepted_trades,
+        duplicate_trades=duplicate_trades,
+        out_of_order_trades=out_of_order_trades,
+        trade_id_gaps=trade_id_gaps,
+    )

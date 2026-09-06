@@ -1,4 +1,4 @@
-"""Capture sequence-valid Binance Spot L2 snapshots and depth deltas."""
+"""Co-capture Binance Spot L2 deltas and public trades."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import asyncio
 import json
 import sys
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -22,20 +23,91 @@ from engine.market_data.l2 import (
     RecoverableCaptureError,
     parse_binance_delta,
     parse_binance_snapshot,
+    parse_binance_trade,
 )
 
 
 REST_URL = "https://api.binance.com/api/v3/depth"
-STREAM_URL = "wss://stream.binance.com:9443/ws/{stream}"
+STREAM_URL = "wss://stream.binance.com:9443/stream?streams={streams}"
 
 
 def _decode_stream_message(raw: str | bytes) -> dict[str, Any]:
     payload = json.loads(raw)
     if not isinstance(payload, dict):
         raise ValueError("Binance stream message was not an object")
-    if payload.get("e") == "serverShutdown":
+    event = payload.get("data", payload)
+    if not isinstance(event, dict):
+        raise ValueError("Binance combined-stream data was not an object")
+    if event.get("e") == "serverShutdown":
         raise RecoverableCaptureError("Binance announced a stream shutdown")
     return payload
+
+
+def _event_type(payload: dict[str, Any]) -> str | None:
+    event = payload.get("data", payload)
+    return event.get("e") if isinstance(event, dict) else None
+
+
+@dataclass(slots=True)
+class _ConnectionStats:
+    depth_events: int = 0
+    accepted_trades: int = 0
+    duplicate_trades: int = 0
+    out_of_order_trades: int = 0
+    trade_id_gaps: int = 0
+    last_trade_id: int | None = None
+
+
+def _record_stream_event(
+    payload: dict[str, Any],
+    received: int,
+    writer: CaptureWriter,
+    book: L2Book,
+    stats: _ConnectionStats,
+) -> str:
+    event_type = _event_type(payload)
+    if event_type == "depthUpdate":
+        writer.write("delta", payload, received)
+        status = book.apply_delta(parse_binance_delta(payload, received))
+        if status is ApplyStatus.GAP:
+            writer.write(
+                "gap",
+                {"after_update_id": book.last_update_id, "reason": "depth_sequence_gap"},
+                received,
+            )
+            return "gap"
+        if status is ApplyStatus.APPLIED:
+            stats.depth_events += 1
+        return "continue"
+
+    if event_type == "trade":
+        trade = parse_binance_trade(payload, received)
+        if trade.symbol != book.symbol or trade.venue != book.venue:
+            raise ValueError("trade identity does not match the active L2 book")
+        previous = stats.last_trade_id
+        if previous is not None and trade.trade_id > previous + 1:
+            writer.write(
+                "trade_gap",
+                {
+                    "after_trade_id": previous,
+                    "before_trade_id": trade.trade_id,
+                    "missing_id_count": trade.trade_id - previous - 1,
+                    "reason": "observed_trade_id_discontinuity",
+                },
+                received,
+            )
+            stats.trade_id_gaps += 1
+        writer.write("trade", payload, received)
+        if previous is None or trade.trade_id > previous:
+            stats.accepted_trades += 1
+            stats.last_trade_id = trade.trade_id
+        elif trade.trade_id == previous:
+            stats.duplicate_trades += 1
+        else:
+            stats.out_of_order_trades += 1
+        return "continue"
+
+    raise ValueError(f"unsupported Binance stream event: {event_type!r}")
 
 
 def _snapshot(symbol: str, limit: int) -> tuple[dict[str, Any], int]:
@@ -60,11 +132,12 @@ async def _connect_and_capture(
     limit: int,
     writer: CaptureWriter,
     remaining: int,
-) -> tuple[int, str]:
+    stats: _ConnectionStats,
+) -> str:
     import websockets
 
-    stream = f"{symbol.lower()}@depth@100ms"
-    uri = STREAM_URL.format(stream=stream)
+    streams = f"{symbol.lower()}@depth@100ms/{symbol.lower()}@trade"
+    uri = STREAM_URL.format(streams=streams)
     buffered: list[tuple[dict[str, Any], int]] = []
 
     try:
@@ -85,38 +158,21 @@ async def _connect_and_capture(
             book.load_snapshot(snapshot)
             writer.write("snapshot", snapshot_payload, snapshot_received)
 
-            accepted = 0
             for payload, received in buffered:
-                writer.write("delta", payload, received)
-                status = book.apply_delta(parse_binance_delta(payload, received))
-                if status is ApplyStatus.GAP:
-                    writer.write(
-                        "gap",
-                        {"after_update_id": book.last_update_id, "reason": "sequence_gap"},
-                        time.time_ns(),
-                    )
-                    return accepted, "gap"
-                if status is ApplyStatus.APPLIED:
-                    accepted += 1
-                    if accepted >= remaining:
-                        return accepted, "complete"
+                reason = _record_stream_event(payload, received, writer, book, stats)
+                if reason == "gap":
+                    return reason
+                if stats.depth_events >= remaining:
+                    return "complete"
 
-            while accepted < remaining:
+            while stats.depth_events < remaining:
                 raw = await socket.recv()
                 received = time.time_ns()
                 payload = _decode_stream_message(raw)
-                writer.write("delta", payload, received)
-                status = book.apply_delta(parse_binance_delta(payload, received))
-                if status is ApplyStatus.GAP:
-                    writer.write(
-                        "gap",
-                        {"after_update_id": book.last_update_id, "reason": "sequence_gap"},
-                        time.time_ns(),
-                    )
-                    return accepted, "gap"
-                if status is ApplyStatus.APPLIED:
-                    accepted += 1
-            return accepted, "complete"
+                reason = _record_stream_event(payload, received, writer, book, stats)
+                if reason == "gap":
+                    return reason
+            return "complete"
     except (OSError, websockets.WebSocketException) as exc:
         raise RecoverableCaptureError("depth stream disconnected") from exc
 
@@ -127,42 +183,56 @@ async def capture(
     metadata = {
         "captured_at_utc": datetime.now(timezone.utc).isoformat(),
         "depth_limit": limit,
-        "source": "Binance Spot REST snapshot + diff-depth WebSocket",
+        "source": "Binance Spot REST snapshot + combined diff-depth/trade WebSocket",
+        "streams": [f"{symbol.lower()}@depth@100ms", f"{symbol.lower()}@trade"],
         "symbol": symbol,
         "venue": "binance_spot",
     }
     accepted = 0
+    trades = duplicate_trades = out_of_order_trades = trade_id_gaps = 0
     reconnects = 0
     with CaptureWriter(output, metadata) as writer:
         while accepted < events:
+            stats = _ConnectionStats()
             try:
-                count, reason = await _connect_and_capture(
-                    symbol, limit, writer, events - accepted
+                reason = await _connect_and_capture(
+                    symbol, limit, writer, events - accepted, stats
                 )
-                accepted += count
-                if reason == "complete":
-                    break
-                reconnects += 1
             except RecoverableCaptureError as exc:
-                reconnects += 1
+                reason = "disconnect"
                 writer.write(
                     "disconnect",
-                    {"error_type": type(exc).__name__, "reconnect": reconnects},
+                    {"error_type": type(exc).__name__, "reconnect": reconnects + 1},
                     time.time_ns(),
                 )
+            finally:
+                accepted += stats.depth_events
+                trades += stats.accepted_trades
+                duplicate_trades += stats.duplicate_trades
+                out_of_order_trades += stats.out_of_order_trades
+                trade_id_gaps += stats.trade_id_gaps
+            if reason == "complete":
+                break
+            reconnects += 1
             if reconnects > max_reconnects:
                 raise RuntimeError(
                     f"capture aborted after {reconnects} resynchronizations"
                 )
             await asyncio.sleep(min(2**min(reconnects, 4), 16))
-    print(f"Captured {accepted} applied L2 deltas with {reconnects} resynchronizations.")
+    print(f"Captured {accepted} applied L2 deltas and {trades} accepted public trades.")
+    print(
+        "Trade diagnostics: "
+        f"{trade_id_gaps} ID gaps, {duplicate_trades} duplicates, "
+        f"{out_of_order_trades} out-of-order events."
+    )
+    print(f"Depth resynchronizations/reconnects: {reconnects}.")
     print(f"Capture: {output}")
     print(f"Manifest: {output}.manifest.json")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Capture genuine Binance Spot L2 snapshots and deltas."
+        description="Co-capture Binance Spot L2 snapshots/deltas and public trades."
     )
     parser.add_argument("--symbol", default="BTCUSDT")
     parser.add_argument("--events", type=int, default=1_000)

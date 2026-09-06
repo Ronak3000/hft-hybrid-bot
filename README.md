@@ -14,8 +14,9 @@ The project is under active validation. It is not an exchange, brokerage system,
 - CTest correctness coverage for validation, FIFO, price priority, partial fills, cancellation, pool exhaustion, reset, CSV replay, bit-tree boundaries, and deterministic differential testing.
 - Python access to selected engine operations through Pybind11.
 - A Gymnasium environment and Stable-Baselines3 PPO training path.
-- Sequence-valid Binance Spot L2 snapshot/delta capture, hash-verified storage,
-  and deterministic replay.
+- Co-captured Binance Spot L2 snapshot/delta and individual public-trade
+  streams, with depth-sequence validation, trade-ID diagnostics,
+  hash-verified storage, and deterministic replay.
 - Deterministic causal L2 feature generation for spread, microprice, depth
   imbalance, and Level-1 order-flow imbalance, with source-linked manifests.
 - Timestamp-based forward-return labels that cannot cross sequence segments,
@@ -29,7 +30,7 @@ There are currently three data paths:
 
 1. `scripts/fetch_real_market_data.py` downloads up to roughly 400,000 Binance aggregate trades. Aggregate trades are executions, not Level-2 order-book snapshots or deltas.
 2. `worker/utils/data_downloader.py` downloads one-minute OHLCV candles and converts them into synthetic add/execute messages. These generated events are not reconstructed exchange order flow or L2 data.
-3. `scripts/capture_binance_l2.py` captures genuine Binance Spot REST depth snapshots and diff-depth WebSocket payloads. It validates update sequences, records gaps and resynchronizations, writes files without overwriting them, and seals each capture with a metadata-and-SHA-256 manifest. This is aggregated market-by-price L2 data, not market-by-order data.
+3. `scripts/capture_binance_l2.py` co-captures genuine Binance Spot REST depth snapshots, diff-depth WebSocket payloads, and individual public-trade messages. It preserves WebSocket arrival order, validates depth sequences, records trade-ID diagnostics and reconnect boundaries, writes files without overwriting them, and seals each capture with a metadata-and-SHA-256 manifest. The two WebSocket streams share a local connection but are not an exchange-atomic combined event. This is aggregated market-by-price L2 plus public executions, not market-by-order data or the strategy's fills.
 
 The exchange-connected dashboard consumes Binance aggregate trade messages and applies local paper-fill logic. It does not submit, cancel, or reconcile orders with an exchange. No real funds are routed.
 
@@ -54,7 +55,9 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
 - The OHLCV-derived worker still generates execute events with unrelated order IDs, so those events normally cannot identify a resting order even though replay now supports partial execution correctly.
 - The current tests cover deterministic engine behavior but do not yet model participant cash accounts; cash and inventory conservation belong in the execution simulator phase.
 - The historical RL environment has not yet demonstrated meaningful fills or PPO learning.
-- Queue position, configurable latency, adverse selection, and complete fee accounting are not yet modeled.
+- Exact queue position is unobservable from market-by-price L2. A documented
+  queue-ahead approximation, configurable latency, adverse selection, and
+  complete fee accounting are not yet modeled.
 - No checked-in experiment demonstrates PPO outperforming fixed-spread, inventory-aware, Avellaneda-Stoikov, random, or other baselines.
 - No claim of cross-asset transfer, profitability, drawdown reduction, or adverse-selection reduction has been validated.
 - The `Order` type is not declared `alignas(64)`; only the surrounding slab allocation requests 64-byte alignment.
@@ -68,6 +71,9 @@ The follow-on [causal feature guide](docs/phase2-l2-features.md) defines the
 formulas, leakage boundary, reproducibility metadata, and feature-build command.
 [The labels and splits guide](docs/phase2-labels-splits.md) explains timestamp
 horizons, gap isolation, chronological evaluation, and purging at boundaries.
+[The real-time market-data guide](docs/phase3-realtime-market-data.md) explains
+the co-captured trade stream, its integrity checks, and what it can and cannot
+support in the upcoming execution simulator.
 
 ## Repository layout
 
@@ -149,10 +155,10 @@ Open `http://localhost:3000`.
 The intended progression is:
 
 1. Matching correctness and invariant tests (baseline implemented; property/fuzz coverage will continue to expand).
-2. Sequence-valid L2 capture, causal features, timestamp labels, and purged chronological splits (initial pipeline implemented; substantial multi-session collection remains).
-3. Queue-aware paper execution with latency, fees, and auditable accounting.
+2. Sequence-valid L2/trade co-capture, causal features, timestamp labels, and purged chronological splits (initial pipeline implemented; substantial multi-session collection remains).
+3. Queue-aware paper execution approximations with latency, fees, and auditable accounting.
 4. Fixed-spread, inventory heuristic, Avellaneda-Stoikov, random, and PPO baselines.
-5. Hidden Markov Model regime probabilities using causal order-flow features.
+5. Improve PPO only after the simulator and deterministic baselines are credible; treat Hidden Markov Model regime probabilities as an optional research extension, not a prerequisite.
 6. Chronological, multi-seed out-of-sample evaluation with confidence intervals.
 7. Reproducible benchmark reports and an offline demo.
 

@@ -1,8 +1,10 @@
 # Phase 2: sequence-valid Level-2 data
 
-This phase adds a separate Binance Spot Level-2 capture and replay path. It does
-not convert candles or aggregate trades into invented orders, and it does not
-change the C++ matching-engine hot path.
+This phase added a separate Binance Spot Level-2 capture and replay path. The
+collector now also stores the individual public-trade stream described in the
+[Phase 3 guide](phase3-realtime-market-data.md). It does not convert candles or
+trades into invented orders, and it does not change the C++ matching-engine hot
+path.
 
 ## Beginner mental model
 
@@ -28,7 +30,7 @@ Official protocol reference:
 
 ## What was added
 
-- Frozen snapshot, delta, and price-level schemas.
+- Frozen snapshot, delta, public-trade, and price-level schemas.
 - Exact decimal parsing; exchange prices and quantities never pass through
   binary floating point.
 - Venue/symbol checks, range checks, duplicate-level rejection, and crossed-book
@@ -86,11 +88,12 @@ These tests use small checked-in fixtures and do not need network access.
 
 ## Reproduction smoke check
 
-On 2026-09-06, the collector completed a local BTCUSDT smoke run containing one
-snapshot, 10 applied deltas, three correctly ignored stale buffered deltas, zero
-gaps, and a synchronized final book. The raw smoke file is intentionally ignored
-by Git; this establishes that the network path works, but it is not a published
-dataset or a research result.
+On 2026-09-06, the original depth-only collector completed a local BTCUSDT smoke
+run containing one snapshot, 10 applied deltas, three correctly ignored stale
+buffered deltas, zero gaps, and a synchronized final book. The Phase 3 guide
+records the later combined-stream smoke check. Raw smoke files are intentionally
+ignored by Git; these checks establish that the network path works, but they are
+not a published dataset or a research result.
 
 ## Performance boundary
 

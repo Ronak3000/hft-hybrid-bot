@@ -245,7 +245,7 @@ def _iter_l2_features_verified(
                 if calculated is not None:
                     row, previous = calculated
                     yield row
-            elif kind not in {"gap", "disconnect"}:
+            elif kind not in {"trade", "gap", "trade_gap", "disconnect"}:
                 raise SchemaError(f"unsupported record kind on line {line_number}: {kind}")
 
 
