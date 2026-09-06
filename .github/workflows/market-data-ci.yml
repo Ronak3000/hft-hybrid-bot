@@ -4,16 +4,20 @@ on:
   push:
     paths:
       - "engine/market_data/**"
+      - "engine/research/**"
       - "scripts/capture_binance_l2.py"
+      - "scripts/build_l2_features.py"
       - "scripts/replay_l2.py"
-      - "tests/test_l2_market_data.py"
+      - "tests/test_l2_*.py"
       - ".github/workflows/market-data-ci.yml"
   pull_request:
     paths:
       - "engine/market_data/**"
+      - "engine/research/**"
       - "scripts/capture_binance_l2.py"
+      - "scripts/build_l2_features.py"
       - "scripts/replay_l2.py"
-      - "tests/test_l2_market_data.py"
+      - "tests/test_l2_*.py"
       - ".github/workflows/market-data-ci.yml"
   workflow_dispatch:
 
@@ -33,5 +37,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Test deterministic L2 validation and replay
-        run: python -m unittest tests/test_l2_market_data.py -v
+      - name: Test deterministic L2 validation, replay, and features
+        run: python -m unittest discover -s tests -p "test_l2_*.py" -v
