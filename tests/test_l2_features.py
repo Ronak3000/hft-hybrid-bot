@@ -31,9 +31,23 @@ def _delta(first: int, final: int, bids=None, asks=None) -> dict:
     }
 
 
+def _trade(trade_id: int) -> dict:
+    return {
+        "e": "trade",
+        "E": 1_700_000_000_000,
+        "s": "BTCUSDT",
+        "t": trade_id,
+        "p": "101",
+        "q": "0.1",
+        "T": 1_700_000_000_000,
+        "m": False,
+    }
+
+
 def _capture(path: Path) -> None:
     with CaptureWriter(path, {"venue": "binance_spot", "symbol": "BTCUSDT"}) as writer:
         writer.write("snapshot", _snapshot(), 1)
+        writer.write("trade", _trade(1), 1)
         writer.write(
             "delta",
             _delta(101, 101, bids=[["100", "12"]], asks=[["102", "18"]]),
@@ -69,6 +83,28 @@ class CausalFeatureTests(unittest.TestCase):
         self.assertEqual(second.best_bid, Decimal("101"))
         self.assertEqual(second.ofi_l1, Decimal("4"))
         self.assertEqual(second.update_id, 102)
+
+    def test_public_trades_do_not_change_depth_only_features(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            mixed = root / "mixed.jsonl"
+            depth_only = root / "depth.jsonl"
+            _capture(mixed)
+            with CaptureWriter(
+                depth_only, {"venue": "binance_spot", "symbol": "BTCUSDT"}
+            ) as writer:
+                writer.write("snapshot", _snapshot(), 1)
+                writer.write(
+                    "delta",
+                    _delta(101, 101, bids=[["100", "12"]], asks=[["102", "18"]]),
+                    2,
+                )
+                writer.write("delta", _delta(100, 101, bids=[["1", "1"]]), 3)
+                writer.write("delta", _delta(102, 102, bids=[["101", "4"]]), 4)
+            self.assertEqual(
+                list(iter_l2_features(mixed, levels=2)),
+                list(iter_l2_features(depth_only, levels=2)),
+            )
 
     def test_gap_and_resnapshot_do_not_bridge_feature_history(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
