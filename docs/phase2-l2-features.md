@@ -17,7 +17,9 @@ included in the model input list.
 
 ## Features
 
-Each applied, sequence-valid delta produces one row:
+Each applied, sequence-valid delta produces one row. A `segment_id` identifies
+each uninterrupted snapshot-and-delta sequence so later labels cannot bridge a
+gap or resynchronization:
 
 - `best_bid`, `best_ask`, `mid_price`, and quoted `spread`;
 - `spread_bps`, normalized by the current mid;
@@ -101,6 +103,7 @@ research sample and support no predictive claim.
 - It does not account for fees, latency, or inventory.
 - It does not make an HMM profitable or meaningful by itself.
 
-The next research step is a timestamp-based label builder and chronological
-train/validation/test splitter. After those are tested, the HMM can be fitted on
-training-only standardized features and evaluated as a regime model.
+The timestamp-based label builder and chronological splitter are described in
+[the labels and splits guide](phase2-labels-splits.md). After producing a
+substantial multi-session dataset, the HMM can be fitted on training-only
+standardized features and evaluated as a regime model.

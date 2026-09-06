@@ -52,6 +52,7 @@ class CausalFeatureTests(unittest.TestCase):
 
         self.assertEqual(len(rows), 2)
         first = rows[0]
+        self.assertEqual(first.segment_id, 0)
         self.assertEqual(first.mid_price, Decimal("101"))
         self.assertEqual(first.spread, Decimal("2"))
         self.assertEqual(first.microprice, Decimal("100.8"))
@@ -81,6 +82,7 @@ class CausalFeatureTests(unittest.TestCase):
             rows = list(iter_l2_features(path, levels=1))
 
         self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].segment_id, 1)
         self.assertEqual(rows[0].update_id, 103)
         self.assertEqual(rows[0].ofi_l1, Decimal("1"))
 

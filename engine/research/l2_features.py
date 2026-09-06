@@ -22,10 +22,11 @@ from engine.market_data import (
 )
 
 
-FEATURE_SCHEMA_VERSION = 1
+FEATURE_SCHEMA_VERSION = 2
 FEATURE_DECIMAL_CONTEXT = Context(prec=50, rounding=ROUND_HALF_EVEN)
 
 FEATURE_COLUMNS = (
+    "segment_id",
     "event_time_ms",
     "received_time_ns",
     "update_id",
@@ -49,6 +50,7 @@ FEATURE_COLUMNS = (
 
 @dataclass(frozen=True, slots=True)
 class CausalL2Features:
+    segment_id: int
     event_time_ms: int
     received_time_ns: int
     update_id: int
@@ -123,6 +125,7 @@ def _ofi(previous: _TopOfBook, current: _TopOfBook) -> Decimal:
 def _features(
     book: L2Book,
     previous: _TopOfBook,
+    segment_id: int,
     event_time_ms: int,
     received_time_ns: int,
     bid_changes: int,
@@ -158,6 +161,7 @@ def _features(
             + current.bid_price * current.ask_quantity
         ) / top_total
         row = CausalL2Features(
+            segment_id=segment_id,
             event_time_ms=event_time_ms,
             received_time_ns=received_time_ns,
             update_id=book.last_update_id,
@@ -194,6 +198,7 @@ def _iter_l2_features_verified(
     """Extract rows after the caller has verified capture integrity."""
     book: L2Book | None = None
     previous: _TopOfBook | None = None
+    segment_id = -1
 
     with Path(path).open("r", encoding="utf-8") as source:
         for line_number, line in enumerate(source, start=1):
@@ -213,6 +218,7 @@ def _iter_l2_features_verified(
                 if book is None:
                     raise SchemaError("snapshot appears before metadata")
                 book.load_snapshot(parse_binance_snapshot(payload, book.symbol, received))
+                segment_id += 1
                 previous = _top(book)
             elif kind == "delta":
                 if book is None:
@@ -229,6 +235,7 @@ def _iter_l2_features_verified(
                 calculated = _features(
                     book,
                     previous,
+                    segment_id,
                     delta.event_time_ms,
                     delta.received_time_ns,
                     len(delta.bids),
