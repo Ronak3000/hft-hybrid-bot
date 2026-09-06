@@ -6,6 +6,11 @@ from decimal import Decimal, localcontext
 from pathlib import Path
 
 from engine.market_data import CaptureWriter, L2Book, parse_binance_snapshot
+from engine.research import (
+    calibrate_avellaneda_stoikov,
+    load_calibration,
+    write_calibration,
+)
 from engine.simulation import (
     AvellanedaStoikovPolicy,
     CapturePolicyRunner,
@@ -15,6 +20,7 @@ from engine.simulation import (
     SimulationConfig,
 )
 from scripts.evaluate_capture_baselines import evaluate_baselines
+from scripts.evaluate_sessions import evaluate_sessions
 from scripts.run_sensitivity_grid import run_sensitivity_grid
 
 
@@ -72,6 +78,23 @@ def _capture(path: Path, *, with_gap: bool = False) -> None:
         writer.write("trade", _trade(1, 13), 13)
         payload, received = _delta(
             103, 15, bids=[["101", "0"], ["100", "5"]]
+        )
+        writer.write("delta", payload, received)
+
+
+def _calibration_capture(path: Path) -> None:
+    with CaptureWriter(path, {"venue": "binance_spot", "symbol": "BTCUSDT"}) as writer:
+        writer.write("snapshot", _snapshot(), 100)
+        payload, received = _delta(101, 1_000_000_000, bids=[["101", "5"]])
+        writer.write("delta", payload, received)
+        prices = ["101", "101", "100.5", "100.5", "99.5"]
+        for trade_id, price in enumerate(prices, start=1):
+            received = 1_000_000_000 + trade_id * 100_000_000
+            writer.write(
+                "trade", _trade(trade_id, received, price=price, quantity="1"), received
+            )
+        payload, received = _delta(
+            102, 2_000_000_000, asks=[["102", "0"], ["103", "5"]]
         )
         writer.write("delta", payload, received)
 
@@ -279,6 +302,137 @@ class CapturePolicyRunnerTests(unittest.TestCase):
 
         self.assertEqual(first, second)
         self.assertEqual(first["scenario_count"], 2)
+
+
+class CalibrationTests(unittest.TestCase):
+    def test_training_capture_calibration_is_source_linked_and_repeatable(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            capture = root / "training.jsonl"
+            _calibration_capture(capture)
+            with localcontext() as context:
+                context.prec = 6
+                first = calibrate_avellaneda_stoikov(
+                    [capture], [Decimal("0.5"), Decimal("1"), Decimal("2")]
+                )
+            second = calibrate_avellaneda_stoikov(
+                [capture], [Decimal("0.5"), Decimal("1"), Decimal("2")]
+            )
+            output = root / "calibration.json"
+            write_calibration(first, output)
+            loaded = load_calibration(output)
+
+        self.assertEqual(first.report(), second.report())
+        self.assertEqual(
+            [item.reached_trades for item in first.distance_intensities], [5, 3, 1]
+        )
+        self.assertGreater(first.volatility_per_sqrt_second, 0)
+        self.assertGreater(first.intensity_decay, 0)
+        self.assertGreaterEqual(first.intensity_fit_r_squared, 0)
+        self.assertLessEqual(first.intensity_fit_r_squared, 1)
+        self.assertEqual(loaded["source_captures"][0]["capture_file"], "training.jsonl")
+
+    def test_calibration_rejects_duplicate_sources_and_too_few_bins(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            capture = Path(directory) / "training.jsonl"
+            _calibration_capture(capture)
+            with self.assertRaises(ValueError):
+                calibrate_avellaneda_stoikov([capture, capture], ["0.5", "1"])
+            with self.assertRaises(ValueError):
+                calibrate_avellaneda_stoikov([capture], ["0.5"])
+
+    def test_frozen_calibration_evaluation_is_paired_and_repeatable(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            training = root / "training.jsonl"
+            first_session = root / "session-one.jsonl"
+            second_session = root / "session-two.jsonl"
+            calibration_path = root / "calibration.json"
+            _calibration_capture(training)
+            _capture(first_session)
+            _capture(second_session, with_gap=True)
+            calibration = calibrate_avellaneda_stoikov(
+                [training], [Decimal("0.5"), Decimal("1"), Decimal("2")]
+            )
+            write_calibration(calibration, calibration_path)
+            arguments = {
+                "tick_size": Decimal("0.5"),
+                "quantity": Decimal("1"),
+                "half_spread_ticks": 1,
+                "max_skew_ticks": Decimal("2"),
+                "initial_cash": Decimal("1000"),
+                "maker_fee_rate": Decimal("0"),
+                "order_latency_ns": 0,
+                "cancel_latency_ns": 0,
+                "max_abs_inventory": Decimal("10"),
+                "markout_horizons_ns": (2,),
+                "random_seed": 7,
+                "as_risk_aversion": Decimal("0.001"),
+                "as_session_horizon_seconds": Decimal("60"),
+                "bootstrap_seed": 17,
+                "bootstrap_samples": 100,
+            }
+            first = evaluate_sessions(
+                calibration_path, (first_session, second_session), **arguments
+            )
+            second = evaluate_sessions(
+                calibration_path, (first_session, second_session), **arguments
+            )
+
+        self.assertEqual(first, second)
+        self.assertEqual(first["session_count"], 2)
+        self.assertEqual(first["evaluation_configuration"]["tick_size"], "0.5")
+        self.assertEqual(first["sessions"][0]["capture_metadata"]["symbol"], "BTCUSDT")
+        self.assertEqual(
+            set(first["paired_net_pnl_differences"]),
+            {
+                "inventory_skew_minus_fixed_spread",
+                "seeded_random_minus_fixed_spread",
+                "avellaneda_stoikov_minus_fixed_spread",
+            },
+        )
+        self.assertEqual(
+            first["policy_net_pnl_summary"]["fixed_spread"]["sessions"], 2
+        )
+
+    def test_session_evaluation_rejects_training_overlap_and_duplicates(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            training = root / "training.jsonl"
+            first_session = root / "session-one.jsonl"
+            second_session = root / "session-two.jsonl"
+            calibration_path = root / "calibration.json"
+            _calibration_capture(training)
+            _capture(first_session)
+            _capture(second_session, with_gap=True)
+            calibration = calibrate_avellaneda_stoikov(
+                [training], [Decimal("0.5"), Decimal("1"), Decimal("2")]
+            )
+            write_calibration(calibration, calibration_path)
+            arguments = {
+                "tick_size": Decimal("0.5"),
+                "quantity": Decimal("1"),
+                "half_spread_ticks": 1,
+                "max_skew_ticks": Decimal("2"),
+                "initial_cash": Decimal("1000"),
+                "maker_fee_rate": Decimal("0"),
+                "order_latency_ns": 0,
+                "cancel_latency_ns": 0,
+                "max_abs_inventory": Decimal("10"),
+                "markout_horizons_ns": (2,),
+                "random_seed": 7,
+                "as_risk_aversion": Decimal("0.001"),
+                "as_session_horizon_seconds": Decimal("60"),
+                "bootstrap_samples": 10,
+            }
+            with self.assertRaisesRegex(ValueError, "overlaps calibration"):
+                evaluate_sessions(
+                    calibration_path, (training, first_session), **arguments
+                )
+            with self.assertRaisesRegex(ValueError, "duplicate evaluation"):
+                evaluate_sessions(
+                    calibration_path, (first_session, first_session), **arguments
+                )
 
 
 if __name__ == "__main__":
