@@ -301,7 +301,7 @@ def _capture_summary(path: Path) -> dict[str, Any]:
     kinds: dict[str, int] = {}
     timestamps: list[int] = []
     timestamp_regressions = 0
-    previous_timestamp: int | None = None
+    previous_stream_timestamp: int | None = None
     with path.open("r", encoding="utf-8") as source:
         for line in source:
             record = json.loads(line)
@@ -309,10 +309,18 @@ def _capture_summary(path: Path) -> dict[str, Any]:
             kinds[kind] = kinds.get(kind, 0) + 1
             if kind != "metadata":
                 received = record["received_time_ns"]
-                if previous_timestamp is not None and received < previous_timestamp:
-                    timestamp_regressions += 1
-                previous_timestamp = received
                 timestamps.append(received)
+                # A REST snapshot is intentionally serialized before the
+                # WebSocket messages buffered while it was in flight. Its
+                # receive timestamp can therefore exceed the first buffered
+                # event without violating stream arrival order.
+                if kind != "snapshot":
+                    if (
+                        previous_stream_timestamp is not None
+                        and received < previous_stream_timestamp
+                    ):
+                        timestamp_regressions += 1
+                    previous_stream_timestamp = received
     if not timestamps:
         raise ValueError("capture contains no timestamped market-data records")
     start = min(timestamps)

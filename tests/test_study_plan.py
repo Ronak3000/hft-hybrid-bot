@@ -37,7 +37,13 @@ def _plan(*, events_per_session: int = 1) -> dict:
     return create_study_plan(**_plan_arguments(events_per_session=events_per_session))
 
 
-def _capture(path: Path, start_ns: int) -> None:
+def _capture(
+    path: Path,
+    start_ns: int,
+    *,
+    snapshot_received_ns: int | None = None,
+    trade_received_ns: int | None = None,
+) -> None:
     metadata = {
         "captured_at_utc": "2026-09-06T00:00:00+00:00",
         "depth_limit": 1000,
@@ -54,7 +60,7 @@ def _capture(path: Path, start_ns: int) -> None:
                 "bids": [["100", "5"]],
                 "asks": [["102", "5"]],
             },
-            start_ns,
+            snapshot_received_ns if snapshot_received_ns is not None else start_ns,
         )
         writer.write(
             "delta",
@@ -81,7 +87,7 @@ def _capture(path: Path, start_ns: int) -> None:
                 "T": start_ns // 1_000_000,
                 "m": True,
             },
-            start_ns + 2,
+            trade_received_ns if trade_received_ns is not None else start_ns + 2,
         )
 
 
@@ -162,6 +168,47 @@ class StudyPlanTests(unittest.TestCase):
         self.assertEqual(report["status"], "incomplete")
         self.assertEqual(report["valid_sessions"], 1)
         self.assertEqual(report["missing_sessions"], 2)
+
+    def test_snapshot_buffer_boundary_is_not_a_stream_timestamp_regression(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plan = _plan()
+            plan_path = root / "study.json"
+            write_study_plan(plan, plan_path)
+            first = plan["sessions"][0]
+            _capture(
+                root / plan["capture_directory"] / first["capture_file"],
+                100,
+                snapshot_received_ns=150,
+            )
+            report = audit_study(plan_path, project_root=root)
+
+        first_report = report["sessions"][0]
+        self.assertEqual(report["status"], "incomplete")
+        self.assertEqual(first_report["status"], "valid")
+        self.assertEqual(
+            first_report["summary"]["receive_timestamp_regressions"], 0
+        )
+
+    def test_actual_stream_timestamp_regression_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plan = _plan()
+            plan_path = root / "study.json"
+            write_study_plan(plan, plan_path)
+            first = plan["sessions"][0]
+            _capture(
+                root / plan["capture_directory"] / first["capture_file"],
+                100,
+                trade_received_ns=100,
+            )
+            report = audit_study(plan_path, project_root=root)
+
+        self.assertEqual(report["status"], "fail")
+        self.assertIn(
+            "receive_timestamp_regressions",
+            {issue["code"] for issue in report["issues"]},
+        )
 
     def test_duplicate_and_overlapping_sessions_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
