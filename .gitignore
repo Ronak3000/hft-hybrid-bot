@@ -27,6 +27,7 @@ engine/backend_cpp/build-*/
 
 # Large data CSVs (downloaded at runtime by the Celery worker)
 data/*.csv
+data/captures/
 
 # Next.js
 web/.next/

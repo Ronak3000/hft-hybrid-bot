@@ -14,15 +14,18 @@ The project is under active validation. It is not an exchange, brokerage system,
 - CTest correctness coverage for validation, FIFO, price priority, partial fills, cancellation, pool exhaustion, reset, CSV replay, bit-tree boundaries, and deterministic differential testing.
 - Python access to selected engine operations through Pybind11.
 - A Gymnasium environment and Stable-Baselines3 PPO training path.
+- Sequence-valid Binance Spot L2 snapshot/delta capture, hash-verified storage,
+  and deterministic replay.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
 
 ## Data and simulation status
 
-There are currently two data paths:
+There are currently three data paths:
 
 1. `scripts/fetch_real_market_data.py` downloads up to roughly 400,000 Binance aggregate trades. Aggregate trades are executions, not Level-2 order-book snapshots or deltas.
 2. `worker/utils/data_downloader.py` downloads one-minute OHLCV candles and converts them into synthetic add/execute messages. These generated events are not reconstructed exchange order flow or L2 data.
+3. `scripts/capture_binance_l2.py` captures genuine Binance Spot REST depth snapshots and diff-depth WebSocket payloads. It validates update sequences, records gaps and resynchronizations, writes files without overwriting them, and seals each capture with a metadata-and-SHA-256 manifest. This is aggregated market-by-price L2 data, not market-by-order data.
 
 The exchange-connected dashboard consumes Binance aggregate trade messages and applies local paper-fill logic. It does not submit, cancel, or reconcile orders with an exchange. No real funds are routed.
 
@@ -43,7 +46,7 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
 
 ## Known limitations
 
-- There is no genuine L2 snapshot-and-delta ingestion pipeline yet.
+- The L2 pipeline currently supports Binance Spot only and has not yet produced a published research dataset window.
 - The OHLCV-derived worker still generates execute events with unrelated order IDs, so those events normally cannot identify a resting order even though replay now supports partial execution correctly.
 - The current tests cover deterministic engine behavior but do not yet model participant cash accounts; cash and inventory conservation belong in the execution simulator phase.
 - The historical RL environment has not yet demonstrated meaningful fills or PPO learning.
@@ -54,6 +57,9 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
 - The current Docker Compose file does not include the frontend or Redis and requires external configuration for the full service flow.
 
 See the source and limitations before interpreting any UI output. The immediate project priority is correctness, deterministic replay, and reproducible evaluation.
+
+See [the Phase 2 guide](docs/phase2-l2-data.md) for the L2 sequencing model,
+capture command, integrity verification, and current research limitations.
 
 ## Repository layout
 

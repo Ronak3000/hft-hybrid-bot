@@ -1,0 +1,37 @@
+name: L2 market-data correctness
+
+on:
+  push:
+    paths:
+      - "engine/market_data/**"
+      - "scripts/capture_binance_l2.py"
+      - "scripts/replay_l2.py"
+      - "tests/test_l2_market_data.py"
+      - ".github/workflows/market-data-ci.yml"
+  pull_request:
+    paths:
+      - "engine/market_data/**"
+      - "scripts/capture_binance_l2.py"
+      - "scripts/replay_l2.py"
+      - "tests/test_l2_market_data.py"
+      - ".github/workflows/market-data-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Test deterministic L2 validation and replay
+        run: python -m unittest tests/test_l2_market_data.py -v
