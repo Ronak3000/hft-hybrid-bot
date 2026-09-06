@@ -29,7 +29,6 @@ engine/backend_cpp/build-*/
 data/*.csv
 data/captures/
 data/features/
-data/models/
 
 # Next.js
 web/.next/
