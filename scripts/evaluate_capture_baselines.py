@@ -16,15 +16,17 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from engine.market_data import verify_capture
 from engine.simulation import (
+    AvellanedaStoikovPolicy,
     CapturePolicyRunner,
     FixedSpreadPolicy,
     InventorySkewPolicy,
+    SeededRandomPolicy,
     SimulationConfig,
 )
 from engine.simulation.queue_simulator import SIMULATION_DECIMAL_CONTEXT
 
 
-REPORT_SCHEMA_VERSION = 1
+REPORT_SCHEMA_VERSION = 2
 
 
 def evaluate_baselines(
@@ -40,6 +42,13 @@ def evaluate_baselines(
     cancel_latency_ns: int,
     max_abs_inventory: Decimal,
     markout_horizons_ns: tuple[int, ...],
+    random_seed: int = 7,
+    random_maximum_half_spread_ticks: int = 5,
+    random_maximum_absolute_skew_ticks: int = 2,
+    as_risk_aversion: Decimal = Decimal("0.001"),
+    as_volatility: Decimal = Decimal("0.5"),
+    as_intensity_decay: Decimal = Decimal("1"),
+    as_session_horizon_seconds: Decimal = Decimal("60"),
 ) -> dict[str, Any]:
     source = verify_capture(capture_path)
     config = SimulationConfig(
@@ -61,6 +70,22 @@ def evaluate_baselines(
             half_spread_ticks=half_spread_ticks,
             max_abs_inventory=max_abs_inventory,
             max_skew_ticks=max_skew_ticks,
+        ),
+        "seeded_random": SeededRandomPolicy(
+            tick_size=tick_size,
+            quantity=quantity,
+            seed=random_seed,
+            minimum_half_spread_ticks=1,
+            maximum_half_spread_ticks=random_maximum_half_spread_ticks,
+            maximum_absolute_skew_ticks=random_maximum_absolute_skew_ticks,
+        ),
+        "avellaneda_stoikov": AvellanedaStoikovPolicy(
+            tick_size=tick_size,
+            quantity=quantity,
+            risk_aversion=as_risk_aversion,
+            volatility=as_volatility,
+            intensity_decay=as_intensity_decay,
+            session_horizon_seconds=as_session_horizon_seconds,
         ),
     }
     results: dict[str, Any] = {}
@@ -92,6 +117,13 @@ def evaluate_baselines(
             "cancel_latency_ns": config.cancel_latency_ns,
             "max_abs_inventory": str(config.max_abs_inventory),
             "markout_horizons_ns": list(markout_horizons_ns),
+            "random_seed": random_seed,
+            "random_maximum_half_spread_ticks": random_maximum_half_spread_ticks,
+            "random_maximum_absolute_skew_ticks": random_maximum_absolute_skew_ticks,
+            "as_risk_aversion": str(as_risk_aversion),
+            "as_volatility": str(as_volatility),
+            "as_intensity_decay": str(as_intensity_decay),
+            "as_session_horizon_seconds": str(as_session_horizon_seconds),
         },
         "policies": results,
     }
@@ -150,6 +182,15 @@ def main() -> None:
     parser.add_argument(
         "--markout-ms", type=int, nargs="*", default=[100, 1000, 5000]
     )
+    parser.add_argument("--random-seed", type=int, default=7)
+    parser.add_argument("--random-max-half-spread-ticks", type=int, default=5)
+    parser.add_argument("--random-max-absolute-skew-ticks", type=int, default=2)
+    parser.add_argument("--as-risk-aversion", type=Decimal, default=Decimal("0.001"))
+    parser.add_argument("--as-volatility", type=Decimal, default=Decimal("0.5"))
+    parser.add_argument("--as-intensity-decay", type=Decimal, default=Decimal("1"))
+    parser.add_argument(
+        "--as-session-horizon-seconds", type=Decimal, default=Decimal("60")
+    )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if any(horizon <= 0 for horizon in args.markout_ms):
@@ -167,6 +208,13 @@ def main() -> None:
         cancel_latency_ns=args.cancel_latency_ns,
         max_abs_inventory=args.max_abs_inventory,
         markout_horizons_ns=horizons,
+        random_seed=args.random_seed,
+        random_maximum_half_spread_ticks=args.random_max_half_spread_ticks,
+        random_maximum_absolute_skew_ticks=args.random_max_absolute_skew_ticks,
+        as_risk_aversion=args.as_risk_aversion,
+        as_volatility=args.as_volatility,
+        as_intensity_decay=args.as_intensity_decay,
+        as_session_horizon_seconds=args.as_session_horizon_seconds,
     )
     encoded = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.output is None:

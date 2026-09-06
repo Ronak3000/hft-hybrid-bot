@@ -210,7 +210,9 @@ class CapturePolicyRunner:
         )
 
     def _reconcile_quotes(self, received_time_ns: int, book: L2Book) -> None:
-        target = self.policy.quote(book, self.simulator.inventory)
+        target = self.policy.quote(
+            book, self.simulator.inventory, received_time_ns
+        )
         desired = {
             Side.BUY: target.bid_price,
             Side.SELL: target.ask_price,
