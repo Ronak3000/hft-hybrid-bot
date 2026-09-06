@@ -1,22 +1,16 @@
 #pragma once
+#include <cstddef>
 #include <vector>
-#include "order.h"
 
 template<typename T>
 class MemoryPool {
 private:
     std::vector<T> pool;           
     std::vector<T*> free_list;     
-    size_t capacity;
-
 public:
-    MemoryPool(size_t size) : capacity(size) {
-        pool.resize(capacity);
-        free_list.reserve(capacity);
-
-        for (size_t i = capacity; i > 0; --i) {
-            free_list.push_back(&pool[i - 1]);
-        }
+    explicit MemoryPool(size_t size) : pool(size) {
+        free_list.reserve(size);
+        reset();
     }
 
     T* allocate() {
@@ -37,5 +31,19 @@ public:
 
     size_t available() const {
         return free_list.size();
+    }
+
+    size_t capacity() const {
+        return pool.size();
+    }
+
+    void reset() {
+        free_list.clear();
+        for (auto& object : pool) {
+            object.reset();
+        }
+        for (size_t i = pool.size(); i > 0; --i) {
+            free_list.push_back(&pool[i - 1]);
+        }
     }
 };

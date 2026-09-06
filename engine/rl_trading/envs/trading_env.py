@@ -13,8 +13,8 @@ import hft_engine
 
 class TradingEnv(gym.Env):
     """
-    Institutional-Grade Hybrid RL + Mathematical Market Making Environment.
-    Features bare-metal C++ matching, O(1) circular volatility buffers, 
+    Experimental hybrid RL and mathematical market-making environment.
+    Features C++ matching, a fixed-size volatility buffer,
     price-invariant scaling, order persistence deadbands, hard inventory boundaries,
     and native quote suppression (Leave/Enter Market).
     """
@@ -175,8 +175,8 @@ class TradingEnv(gym.Env):
             self.best_ask = ask_price
             self.fair_price = self.mid_price
 
-            # --- 3. TRUE TRAINED TRADE SIZING ---
-            # Scale the model's exact trained base_trade_size by current market volatility
+            # --- 3. EXPERIMENTAL TRADE SIZING ---
+            # Scale the configured base trade size by current market volatility.
             target_vol = max(self.mid_price * 0.005, 0.01)
             vol_scalar = np.clip(target_vol / max(self.volatility, 0.01), 0.2, 1.0)
             current_trade_size = float(self.BASE_TRADE_SIZE * vol_scalar)

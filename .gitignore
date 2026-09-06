@@ -20,6 +20,7 @@ api/.env
 
 # C++ build artifacts (compiled on Render by Docker, not committed)
 engine/backend_cpp/build/
+engine/backend_cpp/build-*/
 *.pyd
 *.so
 *.dll

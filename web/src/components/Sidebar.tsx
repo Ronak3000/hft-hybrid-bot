@@ -10,8 +10,8 @@ export function Sidebar() {
   if (pathname === '/') return null;
 
     const navItems = [
-    { name: 'Live HFT Terminal', href: '/dashboard', icon: Activity },
-    { name: 'Historical Backtest', href: '/backtest', icon: BarChart2 },
+    { name: 'Paper Simulator', href: '/dashboard', icon: Activity },
+    { name: 'Historical Data', href: '/backtest', icon: BarChart2 },
     { name: 'Model Training', href: '/train', icon: BrainCircuit }, // NEW ROUTE
     ];
 

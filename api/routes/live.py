@@ -31,7 +31,7 @@ storage_client = (
     else supabase_client
 )
 
-router = APIRouter(tags=["Institutional Live Daemon"])
+router = APIRouter(tags=["Exchange-Connected Paper Simulator"])
 
 # =====================================================================
 # 1. THE STATE STORE & QUANT DAEMON MANAGER
@@ -345,7 +345,7 @@ async def deploy_engine(req: DeployRequest):
     if clean_sym in manager.daemons and manager.daemons[clean_sym].is_running:
         return {"status": "success", "message": "Daemon already active.", "symbol": req.symbol}
     
-    print(f"[Control Plane] Allocating C++ bare-metal daemon for {req.symbol}...")
+    print(f"[Control Plane] Starting paper-simulation process for {req.symbol}...")
     try:
         env, agent, obs, max_inv, base_sz = await asyncio.to_thread(boot_engine_and_model, req.symbol, req.model_filename)
     except Exception as e:

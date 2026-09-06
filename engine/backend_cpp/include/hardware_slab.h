@@ -1,8 +1,15 @@
 #pragma once
+#include <algorithm>
 #include <cstddef>
 #include <cstdlib>
-#include <cstring>
+#include <limits>
+#include <memory>
 #include <new>
+#include <stdexcept>
+
+#if defined(_MSC_VER) || defined(__MINGW32__)
+#include <malloc.h>
+#endif
 
 // ============================================================================
 // HARDWARE CACHE-ALIGNED MEMORY SLAB (64-Byte L1 Cache Line Aligned)
@@ -15,6 +22,9 @@ private:
 
 public:
     explicit MemorySlab(size_t capacity) : slab_capacity(capacity) {
+        if (capacity == 0 || capacity > std::numeric_limits<size_t>::max() / sizeof(T)) {
+            throw std::invalid_argument("invalid memory slab capacity");
+        }
         size_t bytes = capacity * sizeof(T);
         
         // Ensure total allocation is strictly aligned to 64-byte hardware cache lines
@@ -28,13 +38,26 @@ public:
         data_ptr = static_cast<T*>(std::aligned_alloc(64, bytes));
 #endif
         if (!data_ptr) throw std::bad_alloc();
-        
-        // Zero out physical memory block instantly
-        std::memset(data_ptr, 0, bytes);
+
+        try {
+            std::uninitialized_value_construct_n(data_ptr, slab_capacity);
+        } catch (...) {
+#if defined(_MSC_VER) || defined(__MINGW32__)
+            _aligned_free(data_ptr);
+#else
+            std::free(data_ptr);
+#endif
+            data_ptr = nullptr;
+            throw;
+        }
     }
+
+    MemorySlab(const MemorySlab&) = delete;
+    MemorySlab& operator=(const MemorySlab&) = delete;
 
     ~MemorySlab() {
         if (data_ptr) {
+            std::destroy_n(data_ptr, slab_capacity);
 #if defined(_MSC_VER) || defined(__MINGW32__)
             _aligned_free(data_ptr);
 #else
@@ -43,7 +66,7 @@ public:
         }
     }
 
-    // Force inline for bare-metal register offset indexing
+    // Small accessor intended to inline in optimized builds.
     inline T& operator[](size_t index) noexcept {
         return data_ptr[index];
     }
@@ -52,8 +75,8 @@ public:
         return data_ptr[index];
     }
 
-    inline void clear_all() noexcept {
-        std::memset(data_ptr, 0, slab_capacity * sizeof(T));
+    inline void clear_all() {
+        std::fill_n(data_ptr, slab_capacity, T{});
     }
 
     inline T* raw_data() noexcept { return data_ptr; }

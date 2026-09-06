@@ -7,8 +7,8 @@ from datetime import datetime
 
 def download_binance_data(symbol: str, start_date: str, end_date: str, output_path: str):
     """
-    Downloads historical data from Binance and synthesizes it into 
-    bare-metal tick messages (Add, Cancel, Execute) for the C++ Engine.
+    Downloads one-minute OHLCV candles from Binance and converts them into
+    synthetic engine messages. The output is not Level-2 market data.
     """
     clean_symbol = symbol.replace("/", "").replace("-", "").upper()
     print(f"[Downloader] Fetching Binance data for {clean_symbol}...")

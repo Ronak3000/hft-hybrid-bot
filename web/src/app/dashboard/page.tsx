@@ -158,7 +158,7 @@ export default function LiveDashboardPage() {
           data.recent_executions.forEach((exec: any) => {
             const execTimeMs = exec.time || Date.now();
             const dateStr = new Date(execTimeMs).toLocaleTimeString();
-            restoredLogs.push(`[${dateStr}] Market: Executed ${exec.side} ${exec.size} @ ${exec.price} (PnL: $${exec.realized_pnl})`);
+            restoredLogs.push(`[${dateStr}] Paper fill: ${exec.side} ${exec.size} @ ${exec.price} (simulated PnL: $${exec.realized_pnl})`);
             
             const timeInSeconds = Math.floor(execTimeMs / 1000) as Time;
             restoredMarkers.push({
@@ -204,7 +204,7 @@ export default function LiveDashboardPage() {
         data.latest_executions.forEach((exec: any) => {
            setLiveLogs(prev => {
              const time = new Date().toLocaleTimeString();
-             const newLogs = [...prev, `[${time}] Market: Executed ${exec.side} ${exec.size} @ ${exec.price} (PnL: $${exec.realized_pnl})`];
+             const newLogs = [...prev, `[${time}] Paper fill: ${exec.side} ${exec.size} @ ${exec.price} (simulated PnL: $${exec.realized_pnl})`];
              return newLogs.slice(-50); 
            });
 
@@ -314,18 +314,18 @@ export default function LiveDashboardPage() {
       <header className="mb-8 border-b border-zinc-800 pb-4 flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Activity className="text-blue-500" /> Live Execution Terminal
+            <Activity className="text-blue-500" /> Exchange-Connected Paper Simulator
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">Deploy trained PPO agents against real-time market microstructure.</p>
+          <p className="text-sm text-zinc-400 mt-1">Apply saved PPO policies to Binance aggregate trades with local simulated fills. No exchange orders are submitted.</p>
         </div>
         
         <div className="flex items-center gap-3 bg-zinc-900 px-4 py-2 rounded-lg border border-zinc-800 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
           <Server size={16} className={engineStatus === 'LIVE' ? (isQuoting ? 'text-blue-500' : 'text-yellow-500 animate-pulse') : 'text-zinc-500'} />
           <span className="text-sm font-mono font-medium">
-            {engineStatus === 'OFFLINE' && <span className="text-zinc-400">ENGINE OFFLINE</span>}
-            {engineStatus === 'BOOTING' && <span className="text-yellow-400 animate-pulse">BOOTING DAEMON...</span>}
+            {engineStatus === 'OFFLINE' && <span className="text-zinc-400">SIMULATOR OFFLINE</span>}
+            {engineStatus === 'BOOTING' && <span className="text-yellow-400 animate-pulse">STARTING SIMULATOR...</span>}
             {engineStatus === 'LIVE' && (
-              isQuoting ? <span className="text-blue-400">DAEMON ACTIVE (QUOTING)</span> : <span className="text-yellow-400">MARKET LEFT (PAUSED)</span>
+              isQuoting ? <span className="text-blue-400">PAPER QUOTES ACTIVE</span> : <span className="text-yellow-400">PAPER QUOTES PAUSED</span>
             )}
           </span>
         </div>
@@ -335,7 +335,7 @@ export default function LiveDashboardPage() {
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-lg">
             <h2 className="text-sm font-semibold text-zinc-400 mb-4 uppercase tracking-wider flex items-center gap-2">
-              <Database size={16} /> Strategy Deployment
+              <Database size={16} /> Paper Simulation
             </h2>
             
             <div className="space-y-5">
@@ -351,7 +351,7 @@ export default function LiveDashboardPage() {
 
               <div>
                 <label className="block text-xs text-zinc-500 mb-1 flex justify-between">
-                  <span>Compiled Brain (.zip)</span>
+                  <span>Saved PPO Policy (.zip)</span>
                   {isLoadingModels && <RefreshCw size={12} className="animate-spin text-zinc-500" />}
                 </label>
                 <select 
@@ -375,7 +375,7 @@ export default function LiveDashboardPage() {
                     onClick={handleDeployEngine} disabled={!selectedModel}
                     className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-semibold py-3 rounded-md transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.2)]"
                   >
-                    <Play fill="currentColor" size={16} /> Deploy Strategy
+                    <Play fill="currentColor" size={16} /> Start Paper Simulation
                   </button>
                 ) : (
                   <>
@@ -385,14 +385,14 @@ export default function LiveDashboardPage() {
                         isQuoting ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50 hover:bg-yellow-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 hover:bg-emerald-500/30'
                       }`}
                     >
-                      {isQuoting ? <><Pause size={16} /> Leave Market (Pause)</> : <><PlayCircle size={16} /> Enter Market (Resume)</>}
+                      {isQuoting ? <><Pause size={16} /> Pause Paper Quotes</> : <><PlayCircle size={16} /> Resume Paper Quotes</>}
                     </button>
 
                     <button 
                       onClick={handleStopEngine}
                       className="w-full bg-red-600/20 hover:bg-red-600/30 text-red-500 border border-red-900/50 font-semibold py-2 rounded-md transition-colors flex items-center justify-center gap-2 text-xs"
                     >
-                      Terminate Daemon
+                      Stop Simulator
                     </button>
                   </>
                 )}
@@ -402,10 +402,10 @@ export default function LiveDashboardPage() {
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-lg">
              <h2 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
-              <ShieldCheck size={16} /> Security Rules
+              <ShieldCheck size={16} /> Simulation Limits
             </h2>
             <div className="space-y-2 text-xs font-mono text-zinc-500">
-              <div className="flex justify-between"><span>Max Drawdown:</span> <span className="text-zinc-300">-20.0%</span></div>
+              <div className="flex justify-between"><span>Termination Threshold:</span> <span className="text-zinc-300">80% of start</span></div>
               <div className="flex justify-between"><span>Inventory Limit:</span> <span className="text-emerald-400">±{displayMaxInv.toFixed(1)}</span></div>
               <div className="flex justify-between"><span>Base Order Size:</span> <span className="text-blue-400">{displayBaseTrade.toFixed(2)}</span></div>
             </div>
@@ -423,7 +423,7 @@ export default function LiveDashboardPage() {
               </div>
               <div className="flex gap-6 text-xs font-mono">
                 <div className="flex flex-col items-end">
-                  <span className="text-zinc-500">Unrealized PnL</span>
+                  <span className="text-zinc-500">Simulated PnL</span>
                   <span className={engineStatus === 'LIVE' ? ((liveData.netWorth ?? 1000000) >= 1000000 ? "text-emerald-400 text-sm" : "text-red-400 text-sm") : "text-zinc-600 text-sm"}>
                     {engineStatus === 'LIVE' ? `$${((liveData.netWorth ?? 1000000) - 1000000).toLocaleString(undefined, {minimumFractionDigits: 2})}` : "$0.00"}
                   </span>
@@ -441,8 +441,8 @@ export default function LiveDashboardPage() {
               {engineStatus === 'OFFLINE' && (
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-zinc-600 bg-[#0D1117]">
                   <Activity size={48} className="mx-auto mb-4 opacity-20" />
-                  <p>Awaiting engine initialization...</p>
-                  <p className="text-xs mt-2 font-mono">Select a trained model and click Deploy Strategy.</p>
+                  <p>Awaiting paper simulator initialization...</p>
+                  <p className="text-xs mt-2 font-mono">Select a saved policy and start the paper simulation.</p>
                 </div>
               )}
               <div ref={chartContainerRef} className="absolute inset-0 w-full h-full" />
@@ -452,14 +452,14 @@ export default function LiveDashboardPage() {
                {engineStatus === 'LIVE' ? (
                  <div className="space-y-1.5">
                    {liveLogs.map((log, index) => (
-                     <p key={index} className={log.includes('Market: Executed BUY') ? 'text-emerald-400' : log.includes('Market: Executed SELL') ? 'text-red-400' : log.includes('SERVER ERROR') ? 'text-red-500 font-bold' : log.includes('Control:') ? 'text-yellow-400 font-bold' : 'text-zinc-400'}>
+                     <p key={index} className={log.includes('Paper fill: BUY') ? 'text-emerald-400' : log.includes('Paper fill: SELL') ? 'text-red-400' : log.includes('SERVER ERROR') ? 'text-red-500 font-bold' : log.includes('Control:') ? 'text-yellow-400 font-bold' : 'text-zinc-400'}>
                        {log}
                      </p>
                    ))}
                    <div ref={terminalEndRef} />
                  </div>
                ) : (
-                 <p className="text-zinc-700 italic">Order routing engine disconnected...</p>
+                 <p className="text-zinc-700 italic">Paper simulator disconnected...</p>
                )}
             </div>
           </div>

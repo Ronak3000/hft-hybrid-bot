@@ -10,7 +10,7 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mon
 
 export const metadata: Metadata = {
   title: 'ApexHFT',
-  description: 'Institutional Grade Algorithmic Trading Platform',
+  description: 'Experimental market-microstructure research platform',
 };
 
 export default function RootLayout({

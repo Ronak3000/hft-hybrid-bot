@@ -50,7 +50,7 @@ export default function TrainingPage() {
       const data = await res.json();
       setJobId(data.job_id);
       addLog(`Job accepted by Redis. Task ID: ${data.job_id}`);
-    } catch (error) {
+    } catch {
       setStatus('FAILURE');
       addLog('API Connection failed. Is FastAPI running?');
     }
@@ -96,7 +96,7 @@ useEffect(() => {
           <BrainCircuit className="text-emerald-500" />
           Model Training Cluster
         </h1>
-        <p className="text-sm text-zinc-400 mt-1">Configure parameters and dispatch PPO reinforcement learning jobs to background workers.</p>
+        <p className="text-sm text-zinc-400 mt-1">Dispatch experimental PPO jobs over OHLCV-derived synthetic events. Learning and strategy performance are not yet validated.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -126,7 +126,7 @@ useEffect(() => {
               <div className="space-y-2 pt-1">
                 <div className="flex justify-between items-end">
                   <label className="block text-xs text-zinc-500 flex items-center gap-1">
-                    <Calendar size={14} /> Historical Data Range
+                    <Calendar size={14} /> OHLCV Date Range
                   </label>
                   <div className="flex gap-1">
                     <button onClick={() => setQuickDate(7)} className="text-[10px] px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300 transition-colors">1W</button>
