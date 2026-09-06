@@ -1,8 +1,9 @@
 # Phase 5: real-capture baseline evaluation
 
 This phase streams a verified L2/public-trade capture through the Phase 4
-execution simulator. It implements two deterministic non-learning policies and
-writes a source-linked JSON report. It does not train or evaluate PPO.
+execution simulator. Phase 6 extends its two original deterministic policies
+with seeded-random and Avellaneda–Stoikov baselines. The runner writes a source-
+linked JSON report and does not train or evaluate PPO.
 
 ## Why the warmup boundary matters
 
@@ -44,7 +45,7 @@ configured inventory limit, and expressed in ticks.
 
 Neither policy is claimed to be profitable or optimal.
 
-## Run both baselines
+## Run the baselines
 
 Example for a BTCUSDT capture:
 

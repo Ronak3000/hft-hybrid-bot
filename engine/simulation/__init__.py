@@ -9,7 +9,14 @@ from .queue_simulator import (
     SimulatedOrder,
     SimulationConfig,
 )
-from .policies import FixedSpreadPolicy, InventorySkewPolicy, QuotePolicy, QuoteTarget
+from .policies import (
+    AvellanedaStoikovPolicy,
+    FixedSpreadPolicy,
+    InventorySkewPolicy,
+    QuotePolicy,
+    QuoteTarget,
+    SeededRandomPolicy,
+)
 from .capture_runner import (
     CapturePolicyRunner,
     CaptureRunResult,
@@ -19,6 +26,7 @@ from .capture_runner import (
 
 __all__ = [
     "AccountSnapshot",
+    "AvellanedaStoikovPolicy",
     "CapturePolicyRunner",
     "CaptureRunResult",
     "Fill",
@@ -30,6 +38,7 @@ __all__ = [
     "QuotePolicy",
     "QuoteTarget",
     "ReplayMetrics",
+    "SeededRandomPolicy",
     "Side",
     "SimulatedOrder",
     "SimulationConfig",

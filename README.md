@@ -25,8 +25,12 @@ The project is under active validation. It is not an exchange, brokerage system,
   and cancel latency, conservative queue-ahead approximation, maker fees or
   rebates, inventory limits, and auditable fill records.
 - A streaming verified-capture runner for fixed-spread and inventory-skew
-  baselines, with source-linked deterministic JSON reports, fill rate, turnover,
-  net/gross P&L, fee separation, inventory exposure, and post-fill markouts.
+  baselines, a seeded-random control, and a parameterized finite-horizon
+  Avellaneda–Stoikov approximation, with source-linked deterministic JSON
+  reports, fill rate, turnover, net/gross P&L, fee separation, inventory
+  exposure, and post-fill markouts.
+- A bounded sensitivity-grid runner for comparing fee, order-latency, and quote-
+  width assumptions on identical capture bytes.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
 
@@ -67,8 +71,9 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
   conservative queue-ahead approximation is implemented, but displayed
   cancellations currently receive no queue credit.
 - The new execution core is not yet connected to the Gymnasium environment or
-  PPO. Fixed-spread and inventory-skew capture evaluation is implemented, but
-  Avellaneda–Stoikov and random baselines remain to be added first.
+  PPO. All four initial baselines are implemented, but the Avellaneda–Stoikov
+  volatility and arrival-decay parameters have not been fitted on a substantial
+  training dataset.
 - No checked-in experiment demonstrates PPO outperforming fixed-spread, inventory-aware, Avellaneda-Stoikov, random, or other baselines.
 - No claim of cross-asset transfer, profitability, drawdown reduction, or adverse-selection reduction has been validated.
 - The `Order` type is not declared `alignas(64)`; only the surrounding slab allocation requests 64-byte alignment.
@@ -90,6 +95,8 @@ latency, queue, fill, fee, and accounting assumptions used by the new core.
 [The capture-baseline guide](docs/phase5-capture-baselines.md) documents the
 warmup boundary, policy definitions, reproducible report command, and the first
 real-data smoke result.
+[The Phase 6 guide](docs/phase6-as-random-sensitivity.md) defines the seeded
+random control, Avellaneda–Stoikov units, and bounded sensitivity grid.
 
 ## Repository layout
 
@@ -173,7 +180,7 @@ The intended progression is:
 1. Matching correctness and invariant tests (baseline implemented; property/fuzz coverage will continue to expand).
 2. Sequence-valid L2/trade co-capture, causal features, timestamp labels, and purged chronological splits (initial pipeline implemented; substantial multi-session collection remains).
 3. Queue-aware paper execution approximations with latency, fees, auditable accounting, capture replay, and initial P&L attribution (implemented; sensitivity studies remain).
-4. Fixed-spread and inventory-skew baselines (implemented), followed by Avellaneda-Stoikov, random, and only then PPO.
+4. Fixed-spread, inventory-skew, seeded-random, and parameterized Avellaneda–Stoikov baselines plus initial sensitivity tooling (implemented; substantial chronological evaluation remains).
 5. Improve PPO only after the simulator and deterministic baselines are credible; treat Hidden Markov Model regime probabilities as an optional research extension, not a prerequisite.
 6. Chronological, multi-seed out-of-sample evaluation with confidence intervals.
 7. Reproducible benchmark reports and an offline demo.

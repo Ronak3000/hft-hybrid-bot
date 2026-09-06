@@ -2,17 +2,20 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from pathlib import Path
 
 from engine.market_data import CaptureWriter, L2Book, parse_binance_snapshot
 from engine.simulation import (
+    AvellanedaStoikovPolicy,
     CapturePolicyRunner,
     FixedSpreadPolicy,
     InventorySkewPolicy,
+    SeededRandomPolicy,
     SimulationConfig,
 )
 from scripts.evaluate_capture_baselines import evaluate_baselines
+from scripts.run_sensitivity_grid import run_sensitivity_grid
 
 
 def _snapshot() -> dict:
@@ -97,6 +100,79 @@ class PolicyTests(unittest.TestCase):
         self.assertLess(long.bid_price, flat.bid_price)  # type: ignore[arg-type]
         self.assertLess(long.ask_price, flat.ask_price)  # type: ignore[arg-type]
 
+    def test_seeded_random_policy_is_repeatable(self) -> None:
+        first = SeededRandomPolicy(Decimal("0.5"), Decimal("1"), seed=7)
+        second = SeededRandomPolicy(Decimal("0.5"), Decimal("1"), seed=7)
+        first_quotes = [first.quote(self.book, Decimal("0"), time) for time in range(10)]
+        second_quotes = [
+            second.quote(self.book, Decimal("0"), time) for time in range(10)
+        ]
+        self.assertEqual(first_quotes, second_quotes)
+        self.assertGreater(len(set(first_quotes)), 1)
+
+    def test_avellaneda_stoikov_inventory_and_horizon_behavior(self) -> None:
+        flat = AvellanedaStoikovPolicy(
+            tick_size=Decimal("0.01"),
+            quantity=Decimal("1"),
+            risk_aversion=Decimal("0.1"),
+            volatility=Decimal("2"),
+            intensity_decay=Decimal("1.5"),
+            session_horizon_seconds=Decimal("1"),
+        )
+        long = AvellanedaStoikovPolicy(
+            tick_size=Decimal("0.01"),
+            quantity=Decimal("1"),
+            risk_aversion=Decimal("0.1"),
+            volatility=Decimal("2"),
+            intensity_decay=Decimal("1.5"),
+            session_horizon_seconds=Decimal("1"),
+        )
+        flat_quote = flat.quote(self.book, Decimal("0"), 1_000_000_000)
+        long_quote = long.quote(self.book, Decimal("1"), 1_000_000_000)
+        self.assertLess(long_quote.bid_price, flat_quote.bid_price)  # type: ignore[arg-type]
+        self.assertLess(long_quote.ask_price, flat_quote.ask_price)  # type: ignore[arg-type]
+
+        terminal = long.quote(self.book, Decimal("1"), 2_000_000_000)
+        terminal_flat = flat.quote(self.book, Decimal("0"), 2_000_000_000)
+        self.assertEqual(terminal, terminal_flat)
+        with self.assertRaises(ValueError):
+            long.quote(self.book, Decimal("0"), 1_500_000_000)
+
+    def test_policy_configuration_validation(self) -> None:
+        with self.assertRaises(ValueError):
+            SeededRandomPolicy(
+                Decimal("1"),
+                Decimal("1"),
+                seed=1,
+                minimum_half_spread_ticks=3,
+                maximum_half_spread_ticks=2,
+            )
+        with self.assertRaises(ValueError):
+            AvellanedaStoikovPolicy(
+                Decimal("1"),
+                Decimal("1"),
+                risk_aversion=Decimal("0"),
+                volatility=Decimal("1"),
+                intensity_decay=Decimal("1"),
+                session_horizon_seconds=Decimal("1"),
+            )
+
+    def test_avellaneda_stoikov_ignores_global_decimal_precision(self) -> None:
+        def quote(precision: int):
+            with localcontext() as context:
+                context.prec = precision
+                policy = AvellanedaStoikovPolicy(
+                    Decimal("0.01"),
+                    Decimal("0.1"),
+                    risk_aversion=Decimal("0.00123456789"),
+                    volatility=Decimal("0.56789"),
+                    intensity_decay=Decimal("1.2345"),
+                    session_horizon_seconds=Decimal("60"),
+                )
+                return policy.quote(self.book, Decimal("0.25"), 1)
+
+        self.assertEqual(quote(6), quote(28))
+
 
 class CapturePolicyRunnerTests(unittest.TestCase):
     def test_buffered_events_are_warmup_and_real_trade_fills_queue(self) -> None:
@@ -165,6 +241,44 @@ class CapturePolicyRunnerTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(first["source_capture"], "capture.jsonl")
         self.assertEqual(first["policies"]["fixed_spread"]["metrics"]["fills"], 1)
+        self.assertEqual(
+            set(first["policies"]),
+            {
+                "fixed_spread",
+                "inventory_skew",
+                "seeded_random",
+                "avellaneda_stoikov",
+            },
+        )
+
+    def test_sensitivity_grid_is_bounded_and_deterministic(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "capture.jsonl"
+            _capture(path)
+            arguments = {
+                "fee_rates": (Decimal("0"), Decimal("0.001")),
+                "order_latencies_ns": (0,),
+                "half_spread_ticks": (1,),
+                "tick_size": Decimal("0.5"),
+                "quantity": Decimal("1"),
+                "max_skew_ticks": Decimal("2"),
+                "initial_cash": Decimal("1000"),
+                "cancel_latency_ns": 0,
+                "max_abs_inventory": Decimal("10"),
+                "markout_horizons_ns": (2,),
+                "random_seed": 7,
+                "as_risk_aversion": Decimal("0.001"),
+                "as_volatility": Decimal("0.5"),
+                "as_intensity_decay": Decimal("1"),
+                "as_session_horizon_seconds": Decimal("60"),
+            }
+            first = run_sensitivity_grid(path, **arguments)
+            second = run_sensitivity_grid(path, **arguments)
+            with self.assertRaises(ValueError):
+                run_sensitivity_grid(path, max_scenarios=1, **arguments)
+
+        self.assertEqual(first, second)
+        self.assertEqual(first["scenario_count"], 2)
 
 
 if __name__ == "__main__":
