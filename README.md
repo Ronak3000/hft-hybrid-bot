@@ -20,6 +20,9 @@ The project is under active validation. It is not an exchange, brokerage system,
   imbalance, and Level-1 order-flow imbalance, with source-linked manifests.
 - Timestamp-based forward-return labels that cannot cross sequence segments,
   plus chronological train/validation/test splits with boundary purging.
+- An optional Gaussian HMM research pipeline with train-only scaling,
+  validation-only model selection, convergence/occupancy diagnostics, and
+  forward-only causal regime probabilities.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
 
@@ -56,6 +59,9 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
 - The historical RL environment has not yet demonstrated meaningful fills or PPO learning.
 - Queue position, configurable latency, adverse selection, and complete fee accounting are not yet modeled.
 - No checked-in experiment demonstrates PPO outperforming fixed-spread, inventory-aware, Avellaneda-Stoikov, random, or other baselines.
+- The HMM pipeline has synthetic correctness tests but no checked-in real-market
+  regime study; its current research loader materializes the selected dataset
+  in memory.
 - No claim of cross-asset transfer, profitability, drawdown reduction, or adverse-selection reduction has been validated.
 - The `Order` type is not declared `alignas(64)`; only the surrounding slab allocation requests 64-byte alignment.
 - The current Docker Compose file does not include the frontend or Redis and requires external configuration for the full service flow.
@@ -68,6 +74,8 @@ The follow-on [causal feature guide](docs/phase2-l2-features.md) defines the
 formulas, leakage boundary, reproducibility metadata, and feature-build command.
 [The labels and splits guide](docs/phase2-labels-splits.md) explains timestamp
 horizons, gap isolation, chronological evaluation, and purging at boundaries.
+[The HMM guide](docs/phase3-hmm-regimes.md) documents train-only fitting,
+validation selection, causal inference, state stability, and claim limits.
 
 ## Repository layout
 
@@ -152,7 +160,7 @@ The intended progression is:
 2. Sequence-valid L2 capture, causal features, timestamp labels, and purged chronological splits (initial pipeline implemented; substantial multi-session collection remains).
 3. Queue-aware paper execution with latency, fees, and auditable accounting.
 4. Fixed-spread, inventory heuristic, Avellaneda-Stoikov, random, and PPO baselines.
-5. Hidden Markov Model regime probabilities using causal order-flow features.
+5. Hidden Markov Model regime probabilities using causal order-flow features (pipeline implemented; real-data study pending).
 6. Chronological, multi-seed out-of-sample evaluation with confidence intervals.
 7. Reproducible benchmark reports and an offline demo.
 
