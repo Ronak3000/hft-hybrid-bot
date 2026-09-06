@@ -31,6 +31,10 @@ The project is under active validation. It is not an exchange, brokerage system,
   exposure, and post-fill markouts.
 - A bounded sensitivity-grid runner for comparing fee, order-latency, and quote-
   width assumptions on identical capture bytes.
+- Training-capture-only volatility and public aggressive-trade reach calibration
+  for the Avellaneda–Stoikov baseline, plus frozen-parameter multi-session
+  evaluation with content-hash leakage checks and deterministic paired
+  session-bootstrap intervals.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
 
@@ -71,9 +75,12 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
   conservative queue-ahead approximation is implemented, but displayed
   cancellations currently receive no queue credit.
 - The new execution core is not yet connected to the Gymnasium environment or
-  PPO. All four initial baselines are implemented, but the Avellaneda–Stoikov
-  volatility and arrival-decay parameters have not been fitted on a substantial
-  training dataset.
+  PPO. All four initial baselines and a training-only calibrator are implemented,
+  but no substantial multi-session dataset has yet been used to publish fitted
+  parameters or statistically meaningful comparisons.
+- The Avellaneda–Stoikov arrival calibration measures public aggressive-trade
+  reach by distance. It is a model proxy, not exact queue-conditioned fill
+  intensity, which cannot be observed from market-by-price L2 alone.
 - No checked-in experiment demonstrates PPO outperforming fixed-spread, inventory-aware, Avellaneda-Stoikov, random, or other baselines.
 - No claim of cross-asset transfer, profitability, drawdown reduction, or adverse-selection reduction has been validated.
 - The `Order` type is not declared `alignas(64)`; only the surrounding slab allocation requests 64-byte alignment.
@@ -97,6 +104,9 @@ warmup boundary, policy definitions, reproducible report command, and the first
 real-data smoke result.
 [The Phase 6 guide](docs/phase6-as-random-sensitivity.md) defines the seeded
 random control, Avellaneda–Stoikov units, and bounded sensitivity grid.
+[The Phase 7 guide](docs/phase7-calibration-evaluation.md) explains training-only
+calibration, source-overlap rejection, frozen multi-session evaluation, and
+paired session-level intervals.
 
 ## Repository layout
 
@@ -180,10 +190,11 @@ The intended progression is:
 1. Matching correctness and invariant tests (baseline implemented; property/fuzz coverage will continue to expand).
 2. Sequence-valid L2/trade co-capture, causal features, timestamp labels, and purged chronological splits (initial pipeline implemented; substantial multi-session collection remains).
 3. Queue-aware paper execution approximations with latency, fees, auditable accounting, capture replay, and initial P&L attribution (implemented; sensitivity studies remain).
-4. Fixed-spread, inventory-skew, seeded-random, and parameterized Avellaneda–Stoikov baselines plus initial sensitivity tooling (implemented; substantial chronological evaluation remains).
-5. Improve PPO only after the simulator and deterministic baselines are credible; treat Hidden Markov Model regime probabilities as an optional research extension, not a prerequisite.
-6. Chronological, multi-seed out-of-sample evaluation with confidence intervals.
-7. Reproducible benchmark reports and an offline demo.
+4. Fixed-spread, inventory-skew, seeded-random, and parameterized Avellaneda–Stoikov baselines plus initial sensitivity tooling (implemented).
+5. Training-only model calibration and frozen, paired, session-level evaluation tooling (implemented; substantial chronological data collection and the final study remain).
+6. Improve PPO only after the simulator and deterministic baselines are credible; treat Hidden Markov Model regime probabilities as an optional research extension, not a prerequisite.
+7. Chronological, multi-seed PPO evaluation against every frozen baseline with session-level confidence intervals.
+8. Reproducible benchmark reports and an offline demo.
 
 ## Responsible-use note
 
