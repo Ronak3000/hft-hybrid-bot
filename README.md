@@ -16,6 +16,8 @@ The project is under active validation. It is not an exchange, brokerage system,
 - A Gymnasium environment and Stable-Baselines3 PPO training path.
 - Sequence-valid Binance Spot L2 snapshot/delta capture, hash-verified storage,
   and deterministic replay.
+- Deterministic causal L2 feature generation for spread, microprice, depth
+  imbalance, and Level-1 order-flow imbalance, with source-linked manifests.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
 
@@ -60,6 +62,8 @@ See the source and limitations before interpreting any UI output. The immediate 
 
 See [the Phase 2 guide](docs/phase2-l2-data.md) for the L2 sequencing model,
 capture command, integrity verification, and current research limitations.
+The follow-on [causal feature guide](docs/phase2-l2-features.md) defines the
+formulas, leakage boundary, reproducibility metadata, and feature-build command.
 
 ## Repository layout
 
