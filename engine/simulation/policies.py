@@ -58,7 +58,9 @@ class FixedSpreadPolicy:
     def _around(self, center: Decimal) -> QuoteTarget:
         with localcontext(SIMULATION_DECIMAL_CONTEXT):
             half_width = self.tick_size * self.half_spread_ticks
-        return _quotes_around(center, half_width, self.tick_size, self.quantity)
+        return quote_target_around(
+            center, half_width, self.tick_size, self.quantity
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,7 +148,9 @@ class SeededRandomPolicy:
         with localcontext(SIMULATION_DECIMAL_CONTEXT):
             center += self.tick_size * skew_ticks
             half_width = self.tick_size * half_ticks
-        return _quotes_around(center, half_width, self.tick_size, self.quantity)
+        return quote_target_around(
+            center, half_width, self.tick_size, self.quantity
+        )
 
     def _randint(self, lower: int, upper: int) -> int:
         return lower + self._next_u64() % (upper - lower + 1)
@@ -222,7 +226,7 @@ class AvellanedaStoikovPolicy:
             reservation_price = center - parsed_inventory * risk_term
             total_spread = risk_term + self._liquidity_spread
             half_width = total_spread / Decimal("2")
-        return _quotes_around(
+        return quote_target_around(
             reservation_price, half_width, self.tick_size, self.quantity
         )
 
@@ -239,7 +243,7 @@ def _round_to_tick(price: Decimal, tick: Decimal, rounding: str) -> Decimal:
     return units * tick
 
 
-def _quotes_around(
+def quote_target_around(
     center: Decimal, half_width: Decimal, tick: Decimal, quantity: Decimal
 ) -> QuoteTarget:
     with localcontext(SIMULATION_DECIMAL_CONTEXT):

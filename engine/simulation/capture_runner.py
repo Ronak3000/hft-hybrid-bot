@@ -21,6 +21,7 @@ from engine.market_data import (
 )
 
 from .policies import QuotePolicy
+from .quote_reconciliation import reconcile_quote_target
 from .queue_simulator import (
     SIMULATION_DECIMAL_CONTEXT,
     AccountSnapshot,
@@ -213,30 +214,7 @@ class CapturePolicyRunner:
         target = self.policy.quote(
             book, self.simulator.inventory, received_time_ns
         )
-        desired = {
-            Side.BUY: target.bid_price,
-            Side.SELL: target.ask_price,
-        }
-        if self.simulator.inventory >= self.simulator.config.max_abs_inventory:
-            desired[Side.BUY] = None
-        if self.simulator.inventory <= -self.simulator.config.max_abs_inventory:
-            desired[Side.SELL] = None
-
-        for side in Side:
-            order = self.simulator.open_order(side)
-            price = desired[side]
-            if order is not None:
-                if price is None or order.price != price:
-                    self.simulator.request_cancel(order.order_id, received_time_ns)
-                continue
-            if price is not None:
-                self.simulator.submit_limit(
-                    side, price, target.quantity, received_time_ns
-                )
-        # Zero-latency actions take effect just after this observed event. They
-        # cannot fill on the event that caused the decision, but they are ready
-        # for the next record at the same or a later timestamp.
-        self.simulator.advance_to(received_time_ns, book)
+        reconcile_quote_target(self.simulator, book, target, received_time_ns)
 
     def _record_new_fills(self, first_index: int, mid: Decimal) -> None:
         for fill in self.simulator.fills[first_index:]:
