@@ -99,6 +99,9 @@ The example parameters are experiment inputs, not recommended trading settings.
 Total timesteps must divide exactly into rollout length so the requested and
 actual training budgets cannot silently differ. PPO architecture and optimizer
 defaults are exposed as explicit command arguments and recorded in the sidecar.
+Training enables deterministic PyTorch algorithms, defaults to one PyTorch CPU
+thread, and records runtime/platform metadata. This reduces avoidable variation;
+it does not promise bit-identical models across different hardware or libraries.
 Begin with a short smoke run. Multiple seeds, validation-only configuration
 assessment, and a frozen test comparison against all four baselines are required
 before any PPO performance statement is allowed.

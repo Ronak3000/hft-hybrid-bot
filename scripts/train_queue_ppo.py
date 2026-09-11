@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import importlib.metadata
 import json
+import platform
 import sys
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -48,6 +49,7 @@ def main() -> None:
     parser.add_argument("--n-epochs", type=int, default=10)
     parser.add_argument("--hidden-width", type=int, default=64)
     parser.add_argument("--hidden-layers", type=int, default=2)
+    parser.add_argument("--torch-threads", type=int, default=1)
     parser.add_argument("--n-steps", type=int, default=2048)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--device", default="auto")
@@ -89,6 +91,7 @@ def main() -> None:
         ("n-epochs", args.n_epochs),
         ("hidden-width", args.hidden_width),
         ("hidden-layers", args.hidden_layers),
+        ("torch-threads", args.torch_threads),
     ):
         if isinstance(value, bool) or value <= 0:
             parser.error(f"--{field} must be positive")
@@ -96,9 +99,12 @@ def main() -> None:
     environment = None
     try:
         from stable_baselines3 import PPO
-        from torch import nn
+        import torch
 
         from engine.rl_trading.envs import QueueReplayEnv
+
+        torch.set_num_threads(args.torch_threads)
+        torch.use_deterministic_algorithms(True)
 
         training_paths = validated_split_capture_paths(
             args.plan, "train", project_root=PROJECT_ROOT
@@ -135,7 +141,7 @@ def main() -> None:
             n_steps=args.n_steps,
             batch_size=args.batch_size,
             policy_kwargs={
-                "activation_fn": nn.Tanh,
+                "activation_fn": torch.nn.Tanh,
                 "net_arch": [args.hidden_width] * args.hidden_layers,
             },
             seed=args.seed,
@@ -199,6 +205,8 @@ def main() -> None:
             "n_epochs": args.n_epochs,
             "hidden_width": args.hidden_width,
             "hidden_layers": args.hidden_layers,
+            "torch_threads": args.torch_threads,
+            "torch_deterministic_algorithms": True,
             "n_steps": args.n_steps,
             "batch_size": args.batch_size,
             "device": args.device,
@@ -206,6 +214,12 @@ def main() -> None:
         "versions": {
             package: importlib.metadata.version(package)
             for package in ("gymnasium", "numpy", "stable-baselines3", "torch")
+        },
+        "runtime": {
+            "python_version": platform.python_version(),
+            "platform": platform.platform(),
+            "machine": platform.machine(),
+            "processor": platform.processor(),
         },
         "study_name": plan["study_name"],
         "claim_status": "training artifact only; no out-of-sample result",
