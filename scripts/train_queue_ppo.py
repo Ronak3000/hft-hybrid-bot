@@ -116,6 +116,7 @@ def main() -> None:
     plan_bytes = args.plan.read_bytes()
     model_bytes = args.output.read_bytes()
     sidecar = {
+        "ppo_artifact_schema_version": 1,
         "model_type": "Stable-Baselines3 PPO",
         "environment": "ApexHFTQueueReplay-v0",
         "created_at_utc": datetime.now(timezone.utc).isoformat(),

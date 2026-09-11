@@ -41,6 +41,9 @@ The project is under active validation. It is not an exchange, brokerage system,
 - A Gymnasium queue-replay environment with causal normalized L2 observations,
   discrete tick-aligned quoting actions, shared baseline execution semantics,
   exact accounting rewards, gap truncation, and training-split-only PPO tooling.
+- Integrity-checked multi-seed PPO validation/test evaluation with model,
+  study-plan, and capture hashes; reconnect segments are evaluated explicitly
+  and test access requires a deliberate final-test confirmation.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
 
@@ -81,9 +84,9 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
 - Exact queue position is unobservable from market-by-price L2. A documented
   conservative queue-ahead approximation is implemented, but displayed
   cancellations currently receive no queue credit.
-- The queue execution core is connected to a replacement Gymnasium environment
-  and training-only PPO command. No multi-seed training study or held-out PPO
-  comparison has yet been completed.
+- The queue execution core is connected to replacement PPO training and held-out
+  evaluation commands. No multi-seed study has yet been run, and the PPO report
+  is not yet paired with every frozen baseline in one comparison artifact.
 - The Avellaneda–Stoikov arrival calibration measures public aggressive-trade
   reach by distance. It is a model proxy, not exact queue-conditioned fill
   intensity, which cannot be observed from market-by-price L2 alone.
@@ -119,6 +122,9 @@ dataset before calibration or PPO.
 [The Phase 9 guide](docs/phase9-queue-ppo-environment.md) defines the causal PPO
 environment, action and observation spaces, reward, gap behavior, and strictly
 training-only model command.
+[The Phase 10 guide](docs/phase10-heldout-ppo-evaluation.md) defines model
+integrity checks, reconnect-segment coverage, multi-seed validation, and the
+one-time final-test gate.
 
 ## Repository layout
 
@@ -206,7 +212,9 @@ The intended progression is:
 5. Training-only model calibration and frozen, paired, session-level evaluation tooling (implemented).
 6. Predeclared chronological study plans and multi-session data-quality audits (implemented; the substantial real-data collection remains).
 7. Queue-simulator-backed Gymnasium environment and training-split-only PPO artifacts (implemented; learning is not yet demonstrated).
-8. Chronological, multi-seed PPO evaluation against every frozen baseline with session-level confidence intervals.
+8. Chronological, multi-seed PPO evaluation with session-level intervals
+   (integrity-checked PPO evaluator implemented; one-artifact paired baseline
+   comparison and the real study remain).
 9. Treat Hidden Markov Model regime probabilities as an optional held-out ablation, not a prerequisite.
 10. Reproducible benchmark reports and an offline demo.
 

@@ -83,6 +83,17 @@ def _capture(path: Path, *, gap: bool = False, time_offset: int = 0) -> None:
             )
 
 
+def _multisegment_capture(path: Path) -> None:
+    metadata = {"venue": "binance_spot", "symbol": "BTCUSDT"}
+    with CaptureWriter(path, metadata) as writer:
+        writer.write("snapshot", _snapshot(), 10)
+        writer.write("delta", _delta(101, 11), 11)
+        writer.write("disconnect", {"reason": "test"}, 12)
+        writer.write("snapshot", {**_snapshot(), "lastUpdateId": 200}, 100)
+        writer.write("delta", _delta(201, 101), 101)
+        writer.write("delta", _delta(202, 102), 102)
+
+
 @unittest.skipIf(gymnasium is None, "gymnasium is not installed")
 class QueueReplayEnvTests(unittest.TestCase):
     def _environment(self, path: Path) -> "QueueReplayEnv":
@@ -196,6 +207,31 @@ class QueueReplayEnvTests(unittest.TestCase):
         self.assertEqual(first_info["capture_file"], "first.jsonl")
         self.assertEqual(second_info["capture_file"], "second.jsonl")
         self.assertEqual(selected_info["capture_file"], "first.jsonl")
+
+    def test_each_reconnect_segment_is_a_distinct_episode(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "segments.jsonl"
+            _multisegment_capture(path)
+            env = self._environment(path)
+
+            _, first = env.reset()
+            env.step(0)
+            _, _, _, truncated, terminal = env.step(0)
+            _, second = env.reset()
+            _, wrapped = env.reset()
+            _, selected = env.reset(
+                options={"capture_index": 0, "segment_index": 1}
+            )
+            env.close()
+
+        self.assertTrue(truncated)
+        self.assertEqual(terminal["reason"], "disconnect")
+        self.assertEqual(first["capture_segment_index"], 0)
+        self.assertEqual(second["capture_segment_index"], 1)
+        self.assertEqual(second["decision_time_ns"], 100)
+        self.assertEqual(wrapped["capture_segment_index"], 0)
+        self.assertEqual(selected["capture_segment_index"], 1)
+        self.assertEqual(selected["capture_segment_count"], 2)
 
     def test_duplicate_capture_content_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
