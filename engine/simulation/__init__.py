@@ -16,6 +16,7 @@ from .policies import (
     QuotePolicy,
     QuoteTarget,
     SeededRandomPolicy,
+    quote_target_around,
 )
 from .capture_runner import (
     CapturePolicyRunner,
@@ -23,6 +24,7 @@ from .capture_runner import (
     FillAttribution,
     ReplayMetrics,
 )
+from .quote_reconciliation import reconcile_quote_target
 
 __all__ = [
     "AccountSnapshot",
@@ -42,4 +44,6 @@ __all__ = [
     "Side",
     "SimulatedOrder",
     "SimulationConfig",
+    "reconcile_quote_target",
+    "quote_target_around",
 ]

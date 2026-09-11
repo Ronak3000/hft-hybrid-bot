@@ -29,6 +29,7 @@ from .study_plan import (
     create_study_plan,
     load_study_plan,
     planned_capture_path,
+    validated_split_capture_paths,
     write_study_plan,
 )
 
@@ -55,5 +56,6 @@ __all__ = [
     "create_study_plan",
     "load_study_plan",
     "planned_capture_path",
+    "validated_split_capture_paths",
     "write_study_plan",
 ]

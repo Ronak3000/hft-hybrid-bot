@@ -164,6 +164,32 @@ def planned_capture_path(
     return Path(project_root) / plan["capture_directory"] / matching[0]["capture_file"]
 
 
+def validated_split_capture_paths(
+    plan_path: str | Path,
+    split: str,
+    *,
+    project_root: str | Path,
+) -> tuple[Path, ...]:
+    """Return one complete valid split without admitting another split's data."""
+    if split not in _SPLITS:
+        raise ValueError(f"split must be one of: {', '.join(_SPLITS)}")
+    plan = load_study_plan(plan_path)
+    audit = audit_study(plan_path, project_root=project_root)
+    if audit["status"] == "fail":
+        raise ValueError("study contains rejected or invalid capture data")
+    selected = [item for item in audit["sessions"] if item["split"] == split]
+    incomplete = [item["session_id"] for item in selected if item["status"] != "valid"]
+    if incomplete:
+        raise ValueError(
+            f"{split} split is incomplete: {', '.join(incomplete)}"
+        )
+    root = Path(project_root)
+    return tuple(
+        root / plan["capture_directory"] / item["capture_file"]
+        for item in selected
+    )
+
+
 def audit_study(
     plan_path: str | Path,
     *,

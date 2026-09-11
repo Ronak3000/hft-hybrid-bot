@@ -38,6 +38,9 @@ The project is under active validation. It is not an exchange, brokerage system,
 - Immutable study-plan manifests, planned-session capture, and deterministic
   dataset audits enforcing chronological non-overlap, frozen quality thresholds,
   source identity, and duplicate-content rejection.
+- A Gymnasium queue-replay environment with causal normalized L2 observations,
+  discrete tick-aligned quoting actions, shared baseline execution semantics,
+  exact accounting rewards, gap truncation, and training-split-only PPO tooling.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
 
@@ -73,14 +76,14 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
 - The C++ matching engine intentionally does not model participant accounts.
   The separate paper simulator tests cash, inventory, fees, and turnover, but it
   is not an exchange clearing or reconciliation system.
-- The historical RL environment has not yet demonstrated meaningful fills or PPO learning.
+- The legacy OHLCV/synthetic-event RL environment has not demonstrated
+  meaningful learning and is not the research PPO path.
 - Exact queue position is unobservable from market-by-price L2. A documented
   conservative queue-ahead approximation is implemented, but displayed
   cancellations currently receive no queue credit.
-- The new execution core is not yet connected to the Gymnasium environment or
-  PPO. All four initial baselines and a training-only calibrator are implemented,
-  but no substantial multi-session dataset has yet been used to publish fitted
-  parameters or statistically meaningful comparisons.
+- The queue execution core is connected to a replacement Gymnasium environment
+  and training-only PPO command. No multi-seed training study or held-out PPO
+  comparison has yet been completed.
 - The Avellaneda–Stoikov arrival calibration measures public aggressive-trade
   reach by distance. It is a model proxy, not exact queue-conditioned fill
   intensity, which cannot be observed from market-by-price L2 alone.
@@ -113,6 +116,9 @@ paired session-level intervals.
 [The Phase 8 guide](docs/phase8-study-collection.md) gives the beginner workflow
 for sealing a study plan, collecting sessions in order, and auditing the final
 dataset before calibration or PPO.
+[The Phase 9 guide](docs/phase9-queue-ppo-environment.md) defines the causal PPO
+environment, action and observation spaces, reward, gap behavior, and strictly
+training-only model command.
 
 ## Repository layout
 
@@ -199,9 +205,10 @@ The intended progression is:
 4. Fixed-spread, inventory-skew, seeded-random, and parameterized Avellaneda–Stoikov baselines plus initial sensitivity tooling (implemented).
 5. Training-only model calibration and frozen, paired, session-level evaluation tooling (implemented).
 6. Predeclared chronological study plans and multi-session data-quality audits (implemented; the substantial real-data collection remains).
-7. Improve PPO only after the simulator and deterministic baselines are credible; treat Hidden Markov Model regime probabilities as an optional research extension, not a prerequisite.
+7. Queue-simulator-backed Gymnasium environment and training-split-only PPO artifacts (implemented; learning is not yet demonstrated).
 8. Chronological, multi-seed PPO evaluation against every frozen baseline with session-level confidence intervals.
-9. Reproducible benchmark reports and an offline demo.
+9. Treat Hidden Markov Model regime probabilities as an optional held-out ablation, not a prerequisite.
+10. Reproducible benchmark reports and an offline demo.
 
 ## Responsible-use note
 

@@ -10,6 +10,7 @@ from engine.research import (
     create_study_plan,
     load_study_plan,
     planned_capture_path,
+    validated_split_capture_paths,
     write_study_plan,
 )
 
@@ -136,6 +137,9 @@ class StudyPlanTests(unittest.TestCase):
 
             first = audit_study(plan_path, project_root=root)
             second = audit_study(plan_path, project_root=root)
+            training_paths = validated_split_capture_paths(
+                plan_path, "train", project_root=root
+            )
 
         self.assertEqual(first, second)
         self.assertEqual(first["status"], "pass")
@@ -152,6 +156,10 @@ class StudyPlanTests(unittest.TestCase):
             [item["split"] for item in first["sessions"]],
             ["train", "validation", "test"],
         )
+        self.assertEqual(
+            [path.name for path in training_paths],
+            ["btcusdt-study-train-001.jsonl"],
+        )
 
     def test_missing_capture_is_reported_as_incomplete(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -164,10 +172,23 @@ class StudyPlanTests(unittest.TestCase):
                 root / plan["capture_directory"] / first["capture_file"], 100
             )
             report = audit_study(plan_path, project_root=root)
+            training_paths = validated_split_capture_paths(
+                plan_path, "train", project_root=root
+            )
+            with self.assertRaisesRegex(
+                ValueError, "validation split is incomplete"
+            ):
+                validated_split_capture_paths(
+                    plan_path, "validation", project_root=root
+                )
 
         self.assertEqual(report["status"], "incomplete")
         self.assertEqual(report["valid_sessions"], 1)
         self.assertEqual(report["missing_sessions"], 2)
+        self.assertEqual(
+            [path.name for path in training_paths],
+            ["btcusdt-study-train-001.jsonl"],
+        )
 
     def test_snapshot_buffer_boundary_is_not_a_stream_timestamp_regression(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
