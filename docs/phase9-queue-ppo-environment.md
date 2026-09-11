@@ -10,7 +10,9 @@ that PPO learns a profitable policy or outperforms a baseline.
 
 ## Episode and causality rules
 
-- One verified capture segment is one episode.
+- One verified capture segment is one episode. Captures containing reconnects
+  expose every snapshot-delimited segment in deterministic round-robin order;
+  later valid segments are not silently discarded.
 - Snapshot-time WebSocket records are warmup only. The agent cannot trade on
   information buffered before the REST snapshot completed.
 - The agent acts after observing the current synchronized book.

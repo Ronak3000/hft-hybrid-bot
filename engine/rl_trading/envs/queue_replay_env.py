@@ -60,13 +60,21 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
         self.capture_paths = tuple(Path(path) for path in capture_paths)
         hashes: set[str] = set()
         ordered_hashes: list[str] = []
+        segment_counts: list[int] = []
         for path in self.capture_paths:
             capture_hash = verify_capture(path)["sha256"]
             if capture_hash in hashes:
                 raise ValueError("training captures must have unique content")
             hashes.add(capture_hash)
             ordered_hashes.append(capture_hash)
+            segment_counts.append(self._count_segments(path))
         self.capture_hashes = tuple(ordered_hashes)
+        self.capture_segment_counts = tuple(segment_counts)
+        self._episodes = tuple(
+            (capture_index, segment_index)
+            for capture_index, count in enumerate(self.capture_segment_counts)
+            for segment_index in range(count)
+        )
         self.tick_size = _decimal(tick_size, "tick_size", positive=True)
         self.quantity = _decimal(quantity, "quantity", positive=True)
         self.config = simulation_config or SimulationConfig()
@@ -106,6 +114,7 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
         self.book: L2Book | None = None
         self.simulator = QueueAwareSimulator(self.config)
         self.current_capture_index = 0
+        self.current_segment_index = 0
         self.current_capture_path = self.capture_paths[0]
         self.current_decision_time_ns = 0
         self._previous_mid = Decimal("0")
@@ -122,15 +131,32 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
     ) -> tuple[np.ndarray, dict[str, Any]]:
         super().reset(seed=seed)
         self.close()
-        requested = None if options is None else options.get("capture_index")
-        if requested is None:
-            index = self._episode_number % len(self.capture_paths)
+        requested_capture = (
+            None if options is None else options.get("capture_index")
+        )
+        requested_segment = (
+            None if options is None else options.get("segment_index")
+        )
+        if requested_capture is None and requested_segment is not None:
+            raise ValueError("segment_index requires capture_index")
+        if requested_capture is None:
+            index, segment_index = self._episodes[
+                self._episode_number % len(self._episodes)
+            ]
         else:
-            index = _nonnegative_int(requested, "capture_index")
+            index = _nonnegative_int(requested_capture, "capture_index")
             if index >= len(self.capture_paths):
                 raise ValueError("capture_index is outside the training capture list")
+            segment_index = (
+                0
+                if requested_segment is None
+                else _nonnegative_int(requested_segment, "segment_index")
+            )
+            if segment_index >= self.capture_segment_counts[index]:
+                raise ValueError("segment_index is outside the selected capture")
         self._episode_number += 1
         self.current_capture_index = index
+        self.current_segment_index = segment_index
         self.current_capture_path = self.capture_paths[index]
         self.simulator = QueueAwareSimulator(self.config)
         self._source = self.current_capture_path.open("r", encoding="utf-8")
@@ -217,6 +243,7 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
     def _initialize_to_first_decision(self) -> None:
         assert self._records is not None
         decision_start_ns: int | None = None
+        segment_index = -1
         for line_number, record in self._records:
             kind = record["kind"]
             payload = record["payload"]
@@ -229,10 +256,17 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
             if self.book is None:
                 raise SchemaError(f"{kind} appears before metadata")
             if kind == "snapshot":
+                segment_index += 1
+                if segment_index < self.current_segment_index:
+                    continue
+                if segment_index > self.current_segment_index:
+                    raise SchemaError("selected segment has no causal decision")
                 self.book.load_snapshot(
                     parse_binance_snapshot(payload, self.book.symbol, received)
                 )
                 decision_start_ns = received
+                continue
+            if segment_index < self.current_segment_index:
                 continue
             if decision_start_ns is None:
                 raise SchemaError(f"{kind} appears before a snapshot")
@@ -427,6 +461,10 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
         return {
             "capture_file": self.current_capture_path.name,
             "capture_sha256": self.capture_hashes[self.current_capture_index],
+            "capture_segment_index": self.current_segment_index,
+            "capture_segment_count": self.capture_segment_counts[
+                self.current_capture_index
+            ],
             "decision_time_ns": self.current_decision_time_ns,
             "episode_steps": self._steps,
             "reason": reason,
@@ -466,6 +504,17 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
                 raise SchemaError(
                     f"invalid capture record on line {line_number}"
                 ) from exc
+
+    @classmethod
+    def _count_segments(cls, path: Path) -> int:
+        with path.open("r", encoding="utf-8") as source:
+            count = sum(
+                record["kind"] == "snapshot"
+                for _, record in cls._iter_records(source)
+            )
+        if count == 0:
+            raise SchemaError(f"capture has no snapshot: {path.name}")
+        return count
 
 
 def _positive_int(value: Any, field: str) -> int:

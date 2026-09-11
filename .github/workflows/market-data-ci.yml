@@ -19,12 +19,14 @@ on:
       - "scripts/capture_study_session.py"
       - "scripts/audit_study.py"
       - "scripts/train_queue_ppo.py"
+      - "scripts/evaluate_queue_ppo.py"
       - "tests/test_l2_*.py"
       - "tests/test_realtime_capture.py"
       - "tests/test_queue_simulator.py"
       - "tests/test_capture_runner.py"
       - "tests/test_research_dataset.py"
       - "tests/test_queue_replay_env.py"
+      - "tests/test_ppo_evaluation.py"
       - ".github/workflows/market-data-ci.yml"
   pull_request:
     paths:
@@ -44,12 +46,14 @@ on:
       - "scripts/capture_study_session.py"
       - "scripts/audit_study.py"
       - "scripts/train_queue_ppo.py"
+      - "scripts/evaluate_queue_ppo.py"
       - "tests/test_l2_*.py"
       - "tests/test_realtime_capture.py"
       - "tests/test_queue_simulator.py"
       - "tests/test_capture_runner.py"
       - "tests/test_research_dataset.py"
       - "tests/test_queue_replay_env.py"
+      - "tests/test_ppo_evaluation.py"
       - ".github/workflows/market-data-ci.yml"
   workflow_dispatch:
 
