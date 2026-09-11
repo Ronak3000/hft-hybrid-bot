@@ -229,7 +229,7 @@ int main() {
     }
 
     print_separator();
-    std::cout << "  OUTCOMES COUNTED; LATENCY DISTRIBUTIONS AND AFFINITY STILL PENDING    " << std::endl;
+    std::cout << "  SEE engine_latency_benchmark FOR SEPARATE BATCH DISTRIBUTIONS        " << std::endl;
     print_separator();
     
     return 0;
