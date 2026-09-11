@@ -185,6 +185,7 @@ class PPOEvaluationTests(unittest.TestCase):
         self.assertEqual(
             set(first["baselines"]),
             {
+                "no_quote",
                 "fixed_spread",
                 "inventory_skew",
                 "seeded_random",
@@ -200,6 +201,9 @@ class PPOEvaluationTests(unittest.TestCase):
                 "ppo_seed_mean_minus_fixed_spread"
             ]["mean"],
             "0",
+        )
+        self.assertEqual(
+            first["baselines"]["no_quote"]["sessions"][0]["net_pnl"], "0"
         )
 
     def test_artifact_tampering_and_duplicate_seeds_are_rejected(self) -> None:

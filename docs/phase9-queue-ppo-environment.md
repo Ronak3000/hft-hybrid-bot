@@ -16,7 +16,10 @@ that PPO learns a profitable policy or outperforms a baseline.
 - Snapshot-time WebSocket records are warmup only. The agent cannot trade on
   information buffered before the REST snapshot completed.
 - The agent acts after observing the current synchronized book.
-- A new decision occurs after each successfully applied depth delta.
+- By default, a new decision occurs after each successfully applied depth
+  delta. A frozen positive `decision_interval_ns` instead waits for the first
+  applied delta at or after that interval while still processing every
+  intervening market event.
 - Public trades between decisions consume queue ahead and may fill orders.
 - The chosen quote target persists between decisions and can replace a filled
   quote, subject to the same order and cancellation latency as every baseline.
@@ -84,6 +87,7 @@ python scripts/train_queue_ppo.py \
   --maker-fee-rate 0.0001 \
   --order-latency-ns 1000000 \
   --cancel-latency-ns 1000000 \
+  --decision-interval-ns 250000000 \
   --inventory-penalty-per-second 0.01 \
   --total-timesteps 102400 \
   --seed 7 \
@@ -96,6 +100,8 @@ and dependency-version sidecar, and explicitly records that no held-out split
 was used.
 
 The example parameters are experiment inputs, not recommended trading settings.
+The decision interval is recorded in new sidecars; its zero default preserves
+compatibility with PPO v1 artifacts.
 Total timesteps must divide exactly into rollout length so the requested and
 actual training budgets cannot silently differ. PPO architecture and optimizer
 defaults are exposed as explicit command arguments and recorded in the sidecar.
@@ -103,7 +109,7 @@ Training enables deterministic PyTorch algorithms, defaults to one PyTorch CPU
 thread, and records runtime/platform metadata. This reduces avoidable variation;
 it does not promise bit-identical models across different hardware or libraries.
 Begin with a short smoke run. Multiple seeds, validation-only configuration
-assessment, and a frozen test comparison against all four baselines are required
+assessment, and a frozen test comparison against all baselines are required
 before any PPO performance statement is allowed.
 
 ## Legacy path

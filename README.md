@@ -40,7 +40,8 @@ The project is under active validation. It is not an exchange, brokerage system,
   source identity, and duplicate-content rejection.
 - A Gymnasium queue-replay environment with causal normalized L2 observations,
   discrete tick-aligned quoting actions, shared baseline execution semantics,
-  exact accounting rewards, gap truncation, and training-split-only PPO tooling.
+  exact accounting rewards, gap truncation, configurable causal decision
+  intervals, and training-split-only PPO tooling.
 - Integrity-checked multi-seed PPO validation/test evaluation with model,
   study-plan, and capture hashes; reconnect segments are evaluated explicitly
   and split-scoped audits prevent later capture bytes from being opened before
@@ -132,6 +133,9 @@ integrity checks, reconnect-segment coverage, multi-seed validation, and the
 one-time final-test gate.
 [The Phase 12 pilot result](docs/phase12-ppo-pilot-results.md) records the first
 sealed three-seed outcome, its report hash, limitations, and permitted claims.
+[The PPO v2 controls guide](docs/phase13-ppo-v2-controls.md) explains fee-scale
+economics, causal decision throttling, the no-quote baseline, and the fresh-data
+protocol required for the next experiment.
 [The Phase 13 benchmark guide](docs/phase13-reproducible-benchmarks.md) separates
 throughput from latency-distribution sampling and defines reproducible reporting
 rules.

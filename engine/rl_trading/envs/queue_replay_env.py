@@ -53,6 +53,7 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
         maximum_absolute_skew_ticks: int = 2,
         reward_scale: Decimal | str = Decimal("1"),
         inventory_penalty_per_second: Decimal | str = Decimal("0"),
+        decision_interval_ns: int = 0,
     ) -> None:
         super().__init__()
         if not capture_paths:
@@ -90,6 +91,9 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
         )
         if self.inventory_penalty_per_second < 0:
             raise ValueError("inventory_penalty_per_second must be non-negative")
+        self.decision_interval_ns = _nonnegative_int(
+            decision_interval_ns, "decision_interval_ns"
+        )
 
         skew_choices = 2 * self.maximum_absolute_skew_ticks + 1
         self.action_space = spaces.Discrete(
@@ -305,6 +309,9 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
 
     def _advance_to_next_decision(self, target: QuoteTarget) -> tuple[bool, str]:
         assert self.book is not None
+        decision_not_before_ns = (
+            self.current_decision_time_ns + self.decision_interval_ns
+        )
         while True:
             item = self._next_record()
             if item is None:
@@ -322,7 +329,9 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
                 status = self.book.apply_delta(parse_binance_delta(payload, received))
                 if status is ApplyStatus.APPLIED:
                     self.current_decision_time_ns = received
-                    return False, "depth_decision"
+                    if received >= decision_not_before_ns:
+                        return False, "depth_decision"
+                    continue
                 if status is ApplyStatus.GAP:
                     self.current_decision_time_ns = received
                     self.simulator.invalidate_open_orders(received)
@@ -479,6 +488,7 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
                 self.current_capture_index
             ],
             "decision_time_ns": self.current_decision_time_ns,
+            "decision_interval_ns": self.decision_interval_ns,
             "episode_steps": self._steps,
             "reason": reason,
             "fills_this_step": len(fills),

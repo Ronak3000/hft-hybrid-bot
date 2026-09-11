@@ -2,8 +2,9 @@
 
 Phase 10 adds the first integrity-checked held-out evaluator for models trained
 by `train_queue_ppo.py`. It makes evaluation reproducible; it does not create a
-positive PPO result, prove profitability, or complete the comparison with the
-four frozen deterministic baselines.
+positive PPO result or prove profitability. The original pilot compared four
+active deterministic baselines; later schema-v2 reports also include the
+zero-activity `no_quote` control.
 
 ## What the evaluator refuses
 
@@ -94,8 +95,8 @@ dispersion or confidence interval is reported. Two test sessions produce an
 interval, but that sample remains very small and must be described as a pilot.
 
 The evaluator generates one paired report comparing the PPO seed average with
-fixed-spread, inventory-skew, seeded-random, and frozen Avellaneda–Stoikov
-policies. Every policy uses the same queue environment, snapshot-segment resets,
-fees, latency, inventory limits, and capture bytes. Paired intervals resample
-complete sessions. Until the real study is run, the résumé should claim the
-research infrastructure—not PPO outperformance.
+no-quote, fixed-spread, inventory-skew, seeded-random, and frozen
+Avellaneda–Stoikov policies. Every policy uses the same queue environment,
+decision interval, snapshot-segment resets, fees, latency, inventory limits,
+and capture bytes. Paired intervals resample complete sessions. The résumé
+should claim the research infrastructure—not PPO outperformance.
