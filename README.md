@@ -43,7 +43,11 @@ The project is under active validation. It is not an exchange, brokerage system,
   exact accounting rewards, gap truncation, and training-split-only PPO tooling.
 - Integrity-checked multi-seed PPO validation/test evaluation with model,
   study-plan, and capture hashes; reconnect segments are evaluated explicitly
-  and test access requires a deliberate final-test confirmation.
+  and split-scoped audits prevent later capture bytes from being opened before
+  their chronological gate.
+- A byte-sealed BTCUSDT pilot experiment record freezing three seeds, explicit
+  PPO architecture/hyperparameters, execution costs, and the training-only
+  Avellaneda–Stoikov calibration before validation performance is examined.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
 

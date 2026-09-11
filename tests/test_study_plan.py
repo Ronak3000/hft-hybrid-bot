@@ -190,6 +190,29 @@ class StudyPlanTests(unittest.TestCase):
             ["btcusdt-study-train-001.jsonl"],
         )
 
+    def test_training_split_does_not_open_later_capture_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plan = _plan()
+            plan_path = root / "study.json"
+            write_study_plan(plan, plan_path)
+            paths = []
+            for index, session in enumerate(plan["sessions"], start=1):
+                path = root / plan["capture_directory"] / session["capture_file"]
+                _capture(path, index * 100)
+                paths.append(path)
+            paths[1].write_bytes(paths[1].read_bytes() + b"tampered")
+
+            training_paths = validated_split_capture_paths(
+                plan_path, "train", project_root=root
+            )
+            with self.assertRaisesRegex(ValueError, "invalid capture"):
+                validated_split_capture_paths(
+                    plan_path, "validation", project_root=root
+                )
+
+        self.assertEqual(training_paths, (paths[0],))
+
     def test_snapshot_buffer_boundary_is_not_a_stream_timestamp_regression(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

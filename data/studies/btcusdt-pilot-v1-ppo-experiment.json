@@ -1,0 +1,66 @@
+{
+  "algorithm": {
+    "batch_size": 64,
+    "clip_range": 0.2,
+    "entropy_coefficient": 0.01,
+    "gae_lambda": 0.95,
+    "gamma": 0.99,
+    "hidden_layers": 2,
+    "hidden_width": 64,
+    "learning_rate": 0.0003,
+    "max_grad_norm": 0.5,
+    "n_epochs": 10,
+    "n_steps": 2048,
+    "policy": "MlpPolicy/Tanh",
+    "total_timesteps": 102400
+  },
+  "calibration": {
+    "file": "btcusdt-pilot-v1-as-calibration.json",
+    "intensity_decay": "1.6066679368032756473023434835144487453249581252143",
+    "intensity_fit_r_squared": "0.49466062593976935695475836859697074265274233709007",
+    "sha256": "bff99c922483a03d8086ff985db3f1136ff4db62567f4eca55fe8f03775bc4e6",
+    "status": "training-only public aggressive-trade reach proxy with weak fit",
+    "volatility_per_sqrt_second": "2.3166660924236429479230433532098003920723879010951"
+  },
+  "created_at_utc": "2026-09-11T12:36:52.2293390Z",
+  "data_access_protocol": {
+    "final_test": "one run after configuration freeze with explicit confirmation",
+    "training": "train split only",
+    "validation": "configuration assessment only; no final claim"
+  },
+  "environment": {
+    "cancel_latency_ns": 1000000,
+    "initial_cash": "1000000",
+    "inventory_penalty_per_second": "0.01",
+    "maker_fee_rate": "0.001",
+    "max_abs_inventory": "0.01",
+    "maximum_absolute_skew_ticks": 2,
+    "maximum_half_spread_ticks": 5,
+    "order_latency_ns": 1000000,
+    "quantity": "0.001",
+    "reward_scale": "0.01",
+    "tick_size": "0.01"
+  },
+  "experiment_name": "btcusdt-pilot-v1-ppo",
+  "experiment_schema_version": 1,
+  "interpretation": "pilot software and methodology study; not evidence of profitability",
+  "seeds": [
+    7,
+    19,
+    43
+  ],
+  "study_plan": {
+    "file": "btcusdt-pilot-v1.json",
+    "sha256": "d0171e47cd812d4616c6309cd1f5a155e3483e6c494bb0d1342c9199fc9fc02c"
+  },
+  "training_captures": [
+    {
+      "file": "btcusdt-pilot-v1-train-001.jsonl",
+      "sha256": "4e075a14cc0f5f40d749ee1046848702a7eba8ad1502defb4c037576a3939b4c"
+    },
+    {
+      "file": "btcusdt-pilot-v1-train-002.jsonl",
+      "sha256": "8af39926c461515d139245f5ca97e14aa4503875c36a7a68245224a19fafbc86"
+    }
+  ]
+}
