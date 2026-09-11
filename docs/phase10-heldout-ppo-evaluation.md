@@ -55,6 +55,7 @@ Do not use the test captures while choosing hyperparameters.
 python scripts/evaluate_queue_ppo.py \
   --plan data/studies/btcusdt-pilot-v1.json \
   --split validation \
+  --calibration data/features/btcusdt-pilot-v1-as-calibration.json \
   --models \
     engine/saved_models/queue-ppo-seed-7.json \
     engine/saved_models/queue-ppo-seed-19.json \
@@ -74,6 +75,7 @@ runs on CPU with deterministic action selection.
 python scripts/evaluate_queue_ppo.py \
   --plan data/studies/btcusdt-pilot-v1.json \
   --split test \
+  --calibration data/features/btcusdt-pilot-v1-as-calibration.json \
   --models \
     engine/saved_models/queue-ppo-seed-7.json \
     engine/saved_models/queue-ppo-seed-19.json \
@@ -91,8 +93,9 @@ bootstrap interval across sessions. With only one validation session, no
 dispersion or confidence interval is reported. Two test sessions produce an
 interval, but that sample remains very small and must be described as a pilot.
 
-The next implementation must generate a single paired report comparing the PPO
-seed average with fixed-spread, inventory-skew, seeded-random, and frozen
-Avellaneda–Stoikov policies under identical segment reset and cost assumptions.
-Until that exists and the real study is run, the résumé should claim the
+The evaluator generates one paired report comparing the PPO seed average with
+fixed-spread, inventory-skew, seeded-random, and frozen Avellaneda–Stoikov
+policies. Every policy uses the same queue environment, snapshot-segment resets,
+fees, latency, inventory limits, and capture bytes. Paired intervals resample
+complete sessions. Until the real study is run, the résumé should claim the
 research infrastructure—not PPO outperformance.

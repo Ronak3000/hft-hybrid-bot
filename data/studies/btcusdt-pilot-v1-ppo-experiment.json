@@ -14,6 +14,14 @@
     "policy": "MlpPolicy/Tanh",
     "total_timesteps": 102400
   },
+  "baselines": {
+    "as_risk_aversion": "0.001",
+    "as_session_horizon_seconds": "1000",
+    "fixed_half_spread_ticks": 1,
+    "inventory_max_skew_ticks": "2",
+    "random_seed": 101,
+    "random_seed_rule": "base seed plus zero-based segment index"
+  },
   "calibration": {
     "file": "btcusdt-pilot-v1-as-calibration.json",
     "intensity_decay": "1.6066679368032756473023434835144487453249581252143",

@@ -180,10 +180,23 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
     def step(
         self, action: int
     ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
-        if self._episode_done:
-            raise RuntimeError("step called after the episode ended; call reset")
         parsed_action = self._parse_action(action)
         target = self._target(parsed_action)
+        return self._step_target(target, parsed_action)
+
+    def step_quote_target(
+        self, target: QuoteTarget
+    ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
+        """Advance a deterministic baseline through the same episode mechanics."""
+        if not isinstance(target, QuoteTarget):
+            raise TypeError("target must be a QuoteTarget")
+        return self._step_target(target, 0)
+
+    def _step_target(
+        self, target: QuoteTarget, action_label: int
+    ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
+        if self._episode_done:
+            raise RuntimeError("step called after the episode ended; call reset")
         assert self.book is not None
         reconcile_quote_target(
             self.simulator, self.book, target, self.current_decision_time_ns
@@ -210,7 +223,7 @@ class QueueReplayEnv(gym.Env[np.ndarray, int]):
                 account.net_worth - self._previous_net_worth - risk_penalty
             ) / self.reward_scale
         self._previous_net_worth = account.net_worth
-        self._last_action = parsed_action
+        self._last_action = action_label
         self._steps += 1
         if truncated:
             self._invalidate_at_end()
