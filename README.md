@@ -74,7 +74,7 @@ An independent Windows/MSYS2 reproduction compiled the existing benchmark with `
 | Hierarchical bit-tree loop | 87.2 million iterations/second |
 | Hierarchical bit-tree loop | 11.5 ns mean per iteration |
 
-These figures are single-threaded, in-process synthetic microbenchmark observations. They are not network, exchange round-trip, wire-to-wire, or production end-to-end latency measurements. The benchmark now reports fully accepted orders, rejected orders, successful crosses, and successful cancels separately, but it still lacks latency percentiles, CPU affinity, and complete hardware metadata. Treat the numbers as preliminary engineering measurements, not performance guarantees.
+These figures are single-threaded, in-process synthetic microbenchmark observations. They are not network, exchange round-trip, wire-to-wire, or production end-to-end latency measurements. The throughput benchmark reports fully accepted orders, rejected orders, successful crosses, and successful cancels separately. A separate latency executable now reports p50/p99/p99.9 amortized batch measurements without adding clock reads to the throughput loop. CPU affinity and complete host metadata must still be recorded externally. Treat the numbers as preliminary engineering measurements, not performance guarantees.
 
 ## Known limitations
 
@@ -88,9 +88,10 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
 - Exact queue position is unobservable from market-by-price L2. A documented
   conservative queue-ahead approximation is implemented, but displayed
   cancellations currently receive no queue credit.
-- The queue execution core is connected to replacement PPO training and a
-  same-environment paired baseline evaluator. No multi-seed study has yet been
-  run, so there is still no empirical PPO performance claim.
+- The first sealed three-seed PPO pilot has been run. On two final-test
+  sessions it beat fixed-spread and seeded-random controls but lost to the
+  Avellaneda–Stoikov and inventory-skew baselines; every policy had negative
+  fee-inclusive P&L. The sample is too small for an outperformance claim.
 - The Avellaneda–Stoikov arrival calibration measures public aggressive-trade
   reach by distance. It is a model proxy, not exact queue-conditioned fill
   intensity, which cannot be observed from market-by-price L2 alone.
@@ -129,6 +130,11 @@ training-only model command.
 [The Phase 10 guide](docs/phase10-heldout-ppo-evaluation.md) defines model
 integrity checks, reconnect-segment coverage, multi-seed validation, and the
 one-time final-test gate.
+[The Phase 12 pilot result](docs/phase12-ppo-pilot-results.md) records the first
+sealed three-seed outcome, its report hash, limitations, and permitted claims.
+[The Phase 13 benchmark guide](docs/phase13-reproducible-benchmarks.md) separates
+throughput from latency-distribution sampling and defines reproducible reporting
+rules.
 
 ## Repository layout
 
@@ -181,6 +187,15 @@ cmake --build engine/backend_cpp/build-bench --config Release
 
 Run `engine_benchmark` from the generated build directory. Results remain synthetic and in-process.
 
+Run `engine_latency_benchmark` separately for JSON p50/p99/p99.9 amortized
+batch-latency measurements. This is a distinct instrumented workload and does
+not replace the throughput result. See the
+[Phase 13 benchmark guide](docs/phase13-reproducible-benchmarks.md).
+
+Use `scripts/run_engine_benchmark_suite.py` to record repeated process runs,
+optional CPU affinity, executable/host provenance, and median/minimum/maximum
+summaries in a non-overwriting JSON report.
+
 ### Start the API
 
 ```bash
@@ -217,10 +232,11 @@ The intended progression is:
 6. Predeclared chronological study plans and multi-session data-quality audits (implemented; the substantial real-data collection remains).
 7. Queue-simulator-backed Gymnasium environment and training-split-only PPO artifacts (implemented; learning is not yet demonstrated).
 8. Chronological, multi-seed PPO evaluation with session-level intervals
-   (integrity-checked same-environment paired evaluator implemented; the real
-   study remains).
+   (first sealed five-session pilot completed; PPO did not beat the stronger
+   baselines, and a larger newly sealed study remains).
 9. Treat Hidden Markov Model regime probabilities as an optional held-out ablation, not a prerequisite.
-10. Reproducible benchmark reports and an offline demo.
+10. Reproducible benchmark reports and an offline demo (separate latency
+    sampler and repeatable report wrapper implemented; offline demo remains).
 
 ## Responsible-use note
 

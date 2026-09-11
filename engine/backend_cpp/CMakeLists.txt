@@ -70,4 +70,9 @@ endif()
 if(APEXHFT_BUILD_BENCHMARKS)
     add_executable(engine_benchmark tests/engine_benchmark.cpp)
     apexhft_configure_target(engine_benchmark)
+
+    # Latency sampling is intentionally isolated from the throughput target so
+    # clock reads and percentile collection cannot alter its hot loop.
+    add_executable(engine_latency_benchmark tests/engine_latency_benchmark.cpp)
+    apexhft_configure_target(engine_latency_benchmark)
 endif()
