@@ -13,6 +13,7 @@ from engine.simulation import (
     AvellanedaStoikovPolicy,
     FixedSpreadPolicy,
     InventorySkewPolicy,
+    NoQuotePolicy,
     QuotePolicy,
     SeededRandomPolicy,
     SimulationConfig,
@@ -28,7 +29,7 @@ from .ppo_evaluation import (
 from .study_plan import validated_split_capture_paths
 
 
-PAIRED_EVALUATION_SCHEMA_VERSION = 1
+PAIRED_EVALUATION_SCHEMA_VERSION = 2
 PolicyFactory = Callable[[int], QuotePolicy]
 
 
@@ -49,7 +50,7 @@ def evaluate_paired_queue_policies(
     bootstrap_seed: int = 17,
     bootstrap_samples: int = 2000,
 ) -> dict[str, Any]:
-    """Compare seed-averaged PPO with four baselines by capture session."""
+    """Compare seed-averaged PPO with five baselines by capture session."""
     ppo = evaluate_ppo_artifacts(
         plan_path,
         split,
@@ -86,6 +87,7 @@ def evaluate_paired_queue_policies(
     quantity = Decimal(config["quantity"])
     max_inventory = Decimal(config["max_abs_inventory"])
     policy_factories: dict[str, PolicyFactory] = {
+        "no_quote": lambda _: NoQuotePolicy(quantity),
         "fixed_spread": lambda _: FixedSpreadPolicy(
             tick_size, quantity, fixed_half_spread_ticks
         ),
@@ -197,6 +199,7 @@ def _evaluate_policy_capture(
         inventory_penalty_per_second=Decimal(
             config["inventory_penalty_per_second"]
         ),
+        decision_interval_ns=int(config.get("decision_interval_ns", 0)),
     )
     segments = []
     try:

@@ -235,6 +235,7 @@ def _evaluate_capture(
         inventory_penalty_per_second=Decimal(
             config["inventory_penalty_per_second"]
         ),
+        decision_interval_ns=int(config.get("decision_interval_ns", 0)),
     )
     segments = []
     try:

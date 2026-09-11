@@ -199,6 +199,48 @@ class QueueReplayEnvTests(unittest.TestCase):
         self.assertFalse(truncated)
         self.assertEqual(info["submitted_orders"], 2)
 
+    def test_decision_interval_replays_intervening_events_without_lookahead(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "capture.jsonl"
+            _capture(path)
+            env = QueueReplayEnv(
+                (path,),
+                tick_size="0.5",
+                quantity="1",
+                simulation_config=SimulationConfig(
+                    initial_cash=Decimal("1000"),
+                    max_abs_inventory=Decimal("10"),
+                ),
+                maximum_half_spread_ticks=2,
+                maximum_absolute_skew_ticks=1,
+                decision_interval_ns=4,
+            )
+            env.reset()
+            _, reward, terminated, truncated, info = env.step(2)
+            env.close()
+
+        self.assertEqual(info["decision_time_ns"], 15)
+        self.assertEqual(info["decision_interval_ns"], 4)
+        self.assertEqual(info["fills_this_step"], 1)
+        self.assertEqual(info["episode_steps"], 1)
+        self.assertEqual(reward, 0.0)
+        self.assertFalse(terminated)
+        self.assertFalse(truncated)
+
+    def test_decision_interval_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "capture.jsonl"
+            _capture(path)
+            with self.assertRaisesRegex(ValueError, "decision_interval_ns"):
+                QueueReplayEnv(
+                    (path,),
+                    tick_size="0.5",
+                    quantity="1",
+                    decision_interval_ns=-1,
+                )
+
     def test_gap_truncates_without_a_fabricated_terminal_loss(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "gap.jsonl"

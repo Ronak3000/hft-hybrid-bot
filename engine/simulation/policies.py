@@ -26,6 +26,26 @@ class QuotePolicy(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
+class NoQuotePolicy:
+    """Explicit zero-activity control with zero market exposure."""
+
+    quantity: Decimal
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self, "quantity", _decimal(self.quantity, "quantity", positive=True)
+        )
+
+    def quote(
+        self, book: L2Book, inventory: Decimal, received_time_ns: int = 0
+    ) -> QuoteTarget:
+        del book
+        del inventory
+        del received_time_ns
+        return QuoteTarget(None, None, self.quantity)
+
+
+@dataclass(frozen=True, slots=True)
 class FixedSpreadPolicy:
     tick_size: Decimal
     quantity: Decimal

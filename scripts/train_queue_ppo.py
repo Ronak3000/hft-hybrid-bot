@@ -37,6 +37,7 @@ def main() -> None:
     parser.add_argument(
         "--inventory-penalty-per-second", type=Decimal, default=Decimal("0")
     )
+    parser.add_argument("--decision-interval-ns", type=int, default=0)
     parser.add_argument("--total-timesteps", type=int, default=100_000)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--learning-rate", type=float, default=0.0003)
@@ -74,6 +75,8 @@ def main() -> None:
         parser.error("--total-timesteps must be divisible by --n-steps")
     if args.seed < 0:
         parser.error("--seed must be non-negative")
+    if args.decision_interval_ns < 0:
+        parser.error("--decision-interval-ns must be non-negative")
     for field, value in (
         ("gamma", args.gamma),
         ("gae-lambda", args.gae_lambda),
@@ -126,6 +129,7 @@ def main() -> None:
             maximum_absolute_skew_ticks=args.max_absolute_skew_ticks,
             reward_scale=args.reward_scale,
             inventory_penalty_per_second=args.inventory_penalty_per_second,
+            decision_interval_ns=args.decision_interval_ns,
         )
         model = PPO(
             "MlpPolicy",
@@ -195,6 +199,7 @@ def main() -> None:
             "inventory_penalty_per_second": str(
                 args.inventory_penalty_per_second
             ),
+            "decision_interval_ns": args.decision_interval_ns,
             "learning_rate": args.learning_rate,
             "entropy_coefficient": args.entropy_coefficient,
             "gamma": args.gamma,
