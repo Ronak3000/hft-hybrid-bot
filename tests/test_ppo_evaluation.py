@@ -15,6 +15,7 @@ try:
         evaluate_ppo_artifacts,
         load_ppo_artifact,
     )
+    from engine.research.paired_evaluation import evaluate_paired_queue_policies
     from tests.test_study_plan import _capture, _plan
 except ModuleNotFoundError:
     gymnasium = None
@@ -82,6 +83,32 @@ class PPOEvaluationTests(unittest.TestCase):
             metadata_paths.append(metadata_path)
         return plan_path, tuple(metadata_paths)
 
+    def _calibration(self, root: Path, plan_path: Path) -> Path:
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        training = [
+            item for item in plan["sessions"] if item["split"] == "train"
+        ]
+        sources = []
+        for item in training:
+            path = root / plan["capture_directory"] / item["capture_file"]
+            sources.append(
+                {
+                    "capture_file": path.name,
+                    "sha256": verify_capture(path)["sha256"],
+                }
+            )
+        calibration = {
+            "calibration_schema_version": 1,
+            "source_captures": sources,
+            "volatility_per_sqrt_second": "0.5",
+            "intensity_decay": "1",
+            "intensity_scale_per_second": "2",
+            "intensity_fit_r_squared": "0.8",
+        }
+        path = root / "calibration.json"
+        path.write_text(json.dumps(calibration), encoding="utf-8")
+        return path
+
     def test_validation_evaluation_is_source_linked_and_deterministic(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -129,6 +156,51 @@ class PPOEvaluationTests(unittest.TestCase):
 
         self.assertTrue(report["test_confirmation_recorded"])
         self.assertEqual(report["claim_status"].split(";")[0], "held-out test result")
+
+    def test_paired_baselines_share_sessions_and_cost_configuration(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plan_path, artifacts = self._study_and_artifacts(root)
+            calibration = self._calibration(root, plan_path)
+            first = evaluate_paired_queue_policies(
+                plan_path,
+                "validation",
+                artifacts,
+                calibration,
+                project_root=root,
+                predictor_loader=lambda _: _LeaveMarketPredictor(),
+                bootstrap_samples=100,
+            )
+            second = evaluate_paired_queue_policies(
+                plan_path,
+                "validation",
+                artifacts,
+                calibration,
+                project_root=root,
+                predictor_loader=lambda _: _LeaveMarketPredictor(),
+                bootstrap_samples=100,
+            )
+
+        self.assertEqual(first, second)
+        self.assertEqual(
+            set(first["baselines"]),
+            {
+                "fixed_spread",
+                "inventory_skew",
+                "seeded_random",
+                "avellaneda_stoikov",
+            },
+        )
+        self.assertEqual(
+            first["comparison_unit"],
+            "capture_session_with_snapshot_segment_resets",
+        )
+        self.assertEqual(
+            first["paired_net_pnl_differences"][
+                "ppo_seed_mean_minus_fixed_spread"
+            ]["mean"],
+            "0",
+        )
 
     def test_artifact_tampering_and_duplicate_seeds_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

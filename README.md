@@ -88,9 +88,9 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
 - Exact queue position is unobservable from market-by-price L2. A documented
   conservative queue-ahead approximation is implemented, but displayed
   cancellations currently receive no queue credit.
-- The queue execution core is connected to replacement PPO training and held-out
-  evaluation commands. No multi-seed study has yet been run, and the PPO report
-  is not yet paired with every frozen baseline in one comparison artifact.
+- The queue execution core is connected to replacement PPO training and a
+  same-environment paired baseline evaluator. No multi-seed study has yet been
+  run, so there is still no empirical PPO performance claim.
 - The Avellaneda–Stoikov arrival calibration measures public aggressive-trade
   reach by distance. It is a model proxy, not exact queue-conditioned fill
   intensity, which cannot be observed from market-by-price L2 alone.
@@ -217,8 +217,8 @@ The intended progression is:
 6. Predeclared chronological study plans and multi-session data-quality audits (implemented; the substantial real-data collection remains).
 7. Queue-simulator-backed Gymnasium environment and training-split-only PPO artifacts (implemented; learning is not yet demonstrated).
 8. Chronological, multi-seed PPO evaluation with session-level intervals
-   (integrity-checked PPO evaluator implemented; one-artifact paired baseline
-   comparison and the real study remain).
+   (integrity-checked same-environment paired evaluator implemented; the real
+   study remains).
 9. Treat Hidden Markov Model regime probabilities as an optional held-out ablation, not a prerequisite.
 10. Reproducible benchmark reports and an offline demo.
 

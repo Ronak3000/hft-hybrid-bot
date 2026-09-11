@@ -12,7 +12,7 @@ try:
     from gymnasium.utils.env_checker import check_env
 
     from engine.rl_trading.envs import QueueReplayEnv
-    from engine.simulation import SimulationConfig
+    from engine.simulation import FixedSpreadPolicy, SimulationConfig
 except ModuleNotFoundError:
     gymnasium = None
 
@@ -173,6 +173,31 @@ class QueueReplayEnvTests(unittest.TestCase):
         self.assertEqual(reward, -1.01)
         self.assertEqual(info["fees"], "1.010")
         self.assertEqual(info["net_worth"], "998.990")
+
+    def test_direct_baseline_target_uses_the_same_step_mechanics(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "capture.jsonl"
+            _capture(path)
+            env = self._environment(path)
+            env.reset()
+            policy = FixedSpreadPolicy(
+                tick_size=Decimal("0.5"),
+                quantity=Decimal("1"),
+                half_spread_ticks=1,
+            )
+            target = policy.quote(
+                env.book, env.simulator.inventory, env.current_decision_time_ns
+            )
+            observation, reward, terminated, truncated, info = (
+                env.step_quote_target(target)
+            )
+            env.close()
+
+        self.assertTrue(env.observation_space.contains(observation))
+        self.assertEqual(reward, 0.0)
+        self.assertFalse(terminated)
+        self.assertFalse(truncated)
+        self.assertEqual(info["submitted_orders"], 2)
 
     def test_gap_truncates_without_a_fabricated_terminal_loss(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
