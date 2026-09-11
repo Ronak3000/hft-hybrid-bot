@@ -12,6 +12,8 @@
     "n_epochs": 10,
     "n_steps": 2048,
     "policy": "MlpPolicy/Tanh",
+    "torch_deterministic_algorithms": true,
+    "torch_threads": 1,
     "total_timesteps": 102400
   },
   "baselines": {
