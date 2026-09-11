@@ -174,7 +174,9 @@ def validated_split_capture_paths(
     if split not in _SPLITS:
         raise ValueError(f"split must be one of: {', '.join(_SPLITS)}")
     plan = load_study_plan(plan_path)
-    audit = audit_study(plan_path, project_root=project_root)
+    audit = audit_study(
+        plan_path, project_root=project_root, through_split=split
+    )
     if audit["status"] == "fail":
         raise ValueError("study contains rejected or invalid capture data")
     selected = [item for item in audit["sessions"] if item["split"] == split]
@@ -183,6 +185,8 @@ def validated_split_capture_paths(
         raise ValueError(
             f"{split} split is incomplete: {', '.join(incomplete)}"
         )
+    if audit["status"] != "pass":
+        raise ValueError(f"study is incomplete through the {split} split")
     root = Path(project_root)
     return tuple(
         root / plan["capture_directory"] / item["capture_file"]
@@ -194,6 +198,7 @@ def audit_study(
     plan_path: str | Path,
     *,
     project_root: str | Path,
+    through_split: str | None = None,
 ) -> dict[str, Any]:
     plan_file = Path(plan_path)
     plan = load_study_plan(plan_file)
@@ -206,7 +211,17 @@ def audit_study(
     capture_hashes: set[str] = set()
     previous_end_ns: int | None = None
 
+    if through_split is not None and through_split not in _SPLITS:
+        raise ValueError(f"through_split must be one of: {', '.join(_SPLITS)}")
+    included_splits = (
+        _SPLITS
+        if through_split is None
+        else _SPLITS[: _SPLITS.index(through_split) + 1]
+    )
+
     for expected in plan["sessions"]:
+        if expected["split"] not in included_splits:
+            continue
         capture_path = (
             root / plan["capture_directory"] / expected["capture_file"]
         )

@@ -85,7 +85,7 @@ python scripts/train_queue_ppo.py \
   --order-latency-ns 1000000 \
   --cancel-latency-ns 1000000 \
   --inventory-penalty-per-second 0.01 \
-  --total-timesteps 100000 \
+  --total-timesteps 102400 \
   --seed 7 \
   --output engine/saved_models/queue-ppo-seed-7.zip
 ```
@@ -96,9 +96,12 @@ and dependency-version sidecar, and explicitly records that no held-out split
 was used.
 
 The example parameters are experiment inputs, not recommended trading settings.
-Begin with a short smoke run. Phase 10 must add checkpoint evaluation, multiple
-seeds, validation-only model selection, and frozen test comparison against all
-four baselines before any PPO performance statement is allowed.
+Total timesteps must divide exactly into rollout length so the requested and
+actual training budgets cannot silently differ. PPO architecture and optimizer
+defaults are exposed as explicit command arguments and recorded in the sidecar.
+Begin with a short smoke run. Multiple seeds, validation-only configuration
+assessment, and a frozen test comparison against all four baselines are required
+before any PPO performance statement is allowed.
 
 ## Legacy path
 

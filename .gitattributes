@@ -1,0 +1,3 @@
+# Integrity-sealed research artifacts must retain their exact committed bytes.
+data/studies/*.json -text
+data/studies/*.json.manifest.json -text

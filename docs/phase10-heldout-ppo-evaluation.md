@@ -17,6 +17,10 @@ Before loading a policy, it verifies:
 - the selected split is complete and passes its predeclared quality rules;
 - validation is complete before test data can be opened.
 
+The split-scoped audit stops reading at the requested chronological boundary.
+Training therefore opens only training captures, validation opens training plus
+validation, and only an explicitly confirmed final-test run opens test bytes.
+
 Test evaluation additionally requires `--confirm-final-test`. Outputs use
 exclusive creation so an existing report is not silently overwritten.
 
@@ -39,6 +43,9 @@ Do not use the test captures while choosing hyperparameters.
 1. Finish collecting and auditing the planned training and validation sessions.
 2. Choose the PPO architecture, reward, latency, fees, action bounds, and a set
    of seeds before reading validation results.
+   The pilot freezes these choices in
+   `data/studies/btcusdt-pilot-v1-ppo-experiment.json`; its adjacent manifest
+   seals the exact bytes.
 3. Train at least three seeds with otherwise identical arguments. For example,
    run the Phase 9 training command for seeds `7`, `19`, and `43`, changing only
    `--seed` and `--output`.

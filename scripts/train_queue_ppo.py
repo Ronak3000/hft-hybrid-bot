@@ -40,6 +40,14 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--learning-rate", type=float, default=0.0003)
     parser.add_argument("--entropy-coefficient", type=float, default=0.0)
+    parser.add_argument("--gamma", type=float, default=0.99)
+    parser.add_argument("--gae-lambda", type=float, default=0.95)
+    parser.add_argument("--clip-range", type=float, default=0.2)
+    parser.add_argument("--value-coefficient", type=float, default=0.5)
+    parser.add_argument("--max-grad-norm", type=float, default=0.5)
+    parser.add_argument("--n-epochs", type=int, default=10)
+    parser.add_argument("--hidden-width", type=int, default=64)
+    parser.add_argument("--hidden-layers", type=int, default=2)
     parser.add_argument("--n-steps", type=int, default=2048)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--device", default="auto")
@@ -60,12 +68,35 @@ def main() -> None:
             parser.error(f"--{field.replace('_', '-')} must be positive")
     if args.n_steps % args.batch_size:
         parser.error("--batch-size must divide --n-steps for one environment")
+    if args.total_timesteps % args.n_steps:
+        parser.error("--total-timesteps must be divisible by --n-steps")
     if args.seed < 0:
         parser.error("--seed must be non-negative")
+    for field, value in (
+        ("gamma", args.gamma),
+        ("gae-lambda", args.gae_lambda),
+    ):
+        if not 0 < value <= 1:
+            parser.error(f"--{field} must be in (0, 1]")
+    for field, value in (
+        ("clip-range", args.clip_range),
+        ("value-coefficient", args.value_coefficient),
+        ("max-grad-norm", args.max_grad_norm),
+    ):
+        if value <= 0:
+            parser.error(f"--{field} must be positive")
+    for field, value in (
+        ("n-epochs", args.n_epochs),
+        ("hidden-width", args.hidden_width),
+        ("hidden-layers", args.hidden_layers),
+    ):
+        if isinstance(value, bool) or value <= 0:
+            parser.error(f"--{field} must be positive")
 
     environment = None
     try:
         from stable_baselines3 import PPO
+        from torch import nn
 
         from engine.rl_trading.envs import QueueReplayEnv
 
@@ -95,8 +126,18 @@ def main() -> None:
             environment,
             learning_rate=args.learning_rate,
             ent_coef=args.entropy_coefficient,
+            gamma=args.gamma,
+            gae_lambda=args.gae_lambda,
+            clip_range=args.clip_range,
+            vf_coef=args.value_coefficient,
+            max_grad_norm=args.max_grad_norm,
+            n_epochs=args.n_epochs,
             n_steps=args.n_steps,
             batch_size=args.batch_size,
+            policy_kwargs={
+                "activation_fn": nn.Tanh,
+                "net_arch": [args.hidden_width] * args.hidden_layers,
+            },
             seed=args.seed,
             device=args.device,
             verbose=1,
@@ -150,6 +191,14 @@ def main() -> None:
             ),
             "learning_rate": args.learning_rate,
             "entropy_coefficient": args.entropy_coefficient,
+            "gamma": args.gamma,
+            "gae_lambda": args.gae_lambda,
+            "clip_range": args.clip_range,
+            "value_coefficient": args.value_coefficient,
+            "max_grad_norm": args.max_grad_norm,
+            "n_epochs": args.n_epochs,
+            "hidden_width": args.hidden_width,
+            "hidden_layers": args.hidden_layers,
             "n_steps": args.n_steps,
             "batch_size": args.batch_size,
             "device": args.device,
