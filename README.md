@@ -51,6 +51,16 @@ The project is under active validation. It is not an exchange, brokerage system,
   Avellaneda–Stoikov calibration before validation performance is examined.
 - FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
 - A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
+- A backend-independent `/research` overview showing the documented pilot,
+  fee-inclusive losses, simulation assumptions, and source provenance. The
+  illustrated landing-page book is explicitly labeled as non-live data.
+- A working `/replay` demo: play, pause, seek, switch recorded training
+  sessions, a saved PPO v2 policy, and rule-based controls; inspect real L2 depth,
+  model decisions, and simulated fills,
+  and download fee-inclusive accounting with source provenance. Static replay
+  assets need no Python backend, Redis, or model weights to view. The single-seed
+  16,384-step PPO demonstration has zero fills on both displayed training
+  recordings; this establishes integration, not a trading edge.
 
 ## Data and simulation status
 
@@ -140,6 +150,10 @@ protocol required for the next experiment.
 throughput from latency-distribution sampling and defines reproducible reporting
 rules.
 
+[The Phase 14 guide](docs/phase14-quote-grid-and-study.md) documents compact
+quote-width grids, the training-only fee preflight, and the fresh 25-session
+collection plan. Fee coverage is a sanity check, not an edge or fill guarantee.
+
 ## Repository layout
 
 ```text
@@ -223,6 +237,30 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+Start at `/replay` for the working real-data player, or `/research` for a
+backend-independent project walkthrough. The research overview is a
+static summary of the checked-in pilot notes, not an interactive capture replay
+or a live feed. The `/dashboard` and `/train` pages still require the legacy
+API/worker stack; the new queue-replay PPO tooling is not yet wired into them.
+See [the research interface guide](docs/research-interface.md).
+The [working replay guide](docs/phase15-working-replay.md) explains the demo,
+what is simulated, and how to regenerate its assets from local training data.
+The [PPO replay integration guide](docs/phase16-ppo-replay.md) records the actual
+training configuration, model identity, and zero-fill result. Browser playback
+uses precomputed outputs; it is not live model inference or held-out evaluation.
+An opt-in [causal-state and one-sided-action candidate](docs/phase17-causal-ppo-candidate.md)
+adds 26-feature observations and buy-only/sell-only choices without changing
+the legacy model defaults, fees, or C++ matching path. Experimental replay is
+separate from the reference; training diagnostics are not an edge claim.
+The candidate produced 95 simulated fills across all ten training captures,
+but lost 5.35 USDT after 6.53 USDT of modeled fees. It is not promoted over
+the zero-activity reference.
+An optional [entry-cost guard](docs/phase18-entry-cost-guard.md) adds explicit
+fee-aware exposure vetoes and capped inventory-reducing requests. On the same
+checkpoint and all ten training captures it avoided the 5.35-USDT loss by
+producing zero fills; that matches inactivity, not a profitable edge. Inspect
+the separately labeled `/replay?variant=fee` view.
 
 ## Research roadmap
 

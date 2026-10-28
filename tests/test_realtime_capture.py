@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import asyncio
+import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from engine.market_data import CaptureWriter, L2Book, parse_binance_snapshot
@@ -10,10 +13,22 @@ from scripts.capture_binance_l2 import (
     _ConnectionStats,
     _decode_stream_message,
     _record_stream_event,
+    capture,
 )
 
 
 class RealtimeCaptureTests(unittest.TestCase):
+    def test_missing_dependency_does_not_create_capture_or_manifest(self) -> None:
+        for dependency in ("requests", "websockets"):
+            with self.subTest(dependency=dependency), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "planned.jsonl"
+                # Stand-ins keep this test independent of network packages in CI.
+                with patch.dict(sys.modules, {"requests": object(), "websockets": object(), dependency: None}):
+                    with self.assertRaisesRegex(RuntimeError, dependency):
+                        asyncio.run(capture("BTCUSDT", path, 10, 1000, 0))
+                self.assertFalse(path.exists())
+                self.assertFalse(Path(f"{path}.manifest.json").exists())
+
     def test_combined_envelope_is_decoded_without_losing_wrapper(self) -> None:
         raw = json.dumps(
             {"stream": "btcusdt@trade", "data": {"e": "trade", "t": 1}}

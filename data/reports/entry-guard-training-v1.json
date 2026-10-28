@@ -1,0 +1,1806 @@
+{
+  "capture_count": 10,
+  "claim_status": "Same saved policy, explicit external rule overlay. In-sample development only; not retrained, independent validation or a profitable edge.",
+  "held_out_splits_used": [],
+  "metadata_sha256": "671118a2f34b02981ca5f746fcfd8811dc8df7658b47e38298fccc58206dcb44",
+  "model_sha256": "c3e487e563fb2fc314f3ca9ebd29e6ae38779398cc71221fe182e16090875e5c",
+  "schema_version": 1,
+  "split": "train",
+  "study_plan_sha256": "e8dc72b1493eca05a0295389274c1084326fd43e2195c74ad2a922b996e3db96",
+  "variants": [
+    {
+      "aggregate": {
+        "fees": "6.5298176400000",
+        "fills": 95,
+        "gross_pnl": "1.1792150000000000",
+        "instant_edge_below_fee_fills": 95,
+        "inventory_revaluation": "0.9531200000000000",
+        "net_pnl": "-5.3506026400000000",
+        "spread_capture": "0.2260950000000000",
+        "turnover": "6529.8176400000"
+      },
+      "configuration": {
+        "action_schema_version": 3,
+        "batch_size": 64,
+        "cancel_latency_ns": 1000000,
+        "clip_range": 0.2,
+        "decision_interval_ns": 1000000000,
+        "device": "cpu",
+        "entropy_coefficient": 0.01,
+        "entry_fee_buffer_bps": null,
+        "gae_lambda": 0.99,
+        "gamma": 0.999,
+        "half_spread_tick_choices": [
+          1,
+          100,
+          1000,
+          8000,
+          10000
+        ],
+        "hidden_layers": 2,
+        "hidden_width": 64,
+        "initial_cash": "1000000",
+        "inventory_penalty_per_second": "0.01",
+        "learning_rate": 0.0003,
+        "maker_fee_rate": "0.001",
+        "max_abs_inventory": "0.01",
+        "max_grad_norm": 0.5,
+        "maximum_absolute_skew_ticks": 2,
+        "maximum_half_spread_ticks": 10000,
+        "n_epochs": 10,
+        "n_steps": 2048,
+        "observation_schema_version": 2,
+        "order_latency_ns": 1000000,
+        "quantity": "0.001",
+        "reward_scale": "0.01",
+        "tick_size": "0.01",
+        "torch_deterministic_algorithms": true,
+        "torch_threads": 1,
+        "value_coefficient": 0.5
+      },
+      "policy_overlay": {
+        "entry_fee_buffer_bps": null
+      },
+      "sessions": [
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-001.jsonl",
+          "capture_sha256": "f1bee230fc3eace0727f71a3d3abb7a2a42a1c206a4a57dffec582737c1f1251",
+          "fees": "0.08050105",
+          "fills": 1,
+          "net_pnl": "0.01325395000",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 151,
+                "buy": 40,
+                "off": 569,
+                "sell": 200
+              },
+              "decision_steps": 960,
+              "fees": "0.08050105",
+              "fill_diagnostics": {
+                "fills": [
+                  {
+                    "fee": "0.08050105",
+                    "instant_edge_after_fee": "-0.08049605000",
+                    "mid_at_fill": "80501.04500000",
+                    "price": "80501.05",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792918106170849300",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  }
+                ],
+                "instant_edge_below_fee_fills": 1,
+                "inventory_revaluation": "0.09375000000",
+                "spread_capture": "0.00000500000"
+              },
+              "fills": 1,
+              "final_inventory": "-0.001",
+              "maximum_absolute_inventory": "0.001",
+              "net_pnl": "0.01325395000",
+              "rejected_orders": 0,
+              "segment_index": 0,
+              "submitted_orders": 520,
+              "terminal_reason": "end_of_capture",
+              "turnover": "80.50105"
+            }
+          ],
+          "turnover": "80.50105"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-002.jsonl",
+          "capture_sha256": "a17aa05fd45f51dbfb6f22f2313adf67d9f190310737c5635b5960ebb90a5d55",
+          "fees": "1.92502562",
+          "fills": 24,
+          "net_pnl": "-2.03947562000",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 244,
+                "buy": 105,
+                "off": 398,
+                "sell": 202
+              },
+              "decision_steps": 949,
+              "fees": "1.92502562",
+              "fill_diagnostics": {
+                "fills": [
+                  {
+                    "fee": "0.08023837",
+                    "instant_edge_after_fee": "-0.07022337000",
+                    "mid_at_fill": "80248.38500000",
+                    "price": "80238.37",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919600568721600",
+                    "side": "buy",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08020134",
+                    "instant_edge_after_fee": "-0.07018634000",
+                    "mid_at_fill": "80211.35500000",
+                    "price": "80201.34",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919614804368000",
+                    "side": "buy",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08020134",
+                    "instant_edge_after_fee": "-0.07018634000",
+                    "mid_at_fill": "80211.35500000",
+                    "price": "80201.34",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919614819266800",
+                    "side": "buy",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08020134",
+                    "instant_edge_after_fee": "-0.07018634000",
+                    "mid_at_fill": "80211.35500000",
+                    "price": "80201.34",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919614820270600",
+                    "side": "buy",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08020134",
+                    "instant_edge_after_fee": "-0.07018634000",
+                    "mid_at_fill": "80211.35500000",
+                    "price": "80201.34",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919614822268900",
+                    "side": "buy",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08020134",
+                    "instant_edge_after_fee": "-0.07018634000",
+                    "mid_at_fill": "80211.35500000",
+                    "price": "80201.34",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919614823269400",
+                    "side": "buy",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08020134",
+                    "instant_edge_after_fee": "-0.07018634000",
+                    "mid_at_fill": "80211.35500000",
+                    "price": "80201.34",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919614828588600",
+                    "side": "buy",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08020134",
+                    "instant_edge_after_fee": "-0.07018634000",
+                    "mid_at_fill": "80211.35500000",
+                    "price": "80201.34",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919614829693000",
+                    "side": "buy",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08019075",
+                    "instant_edge_after_fee": "-0.07775575000",
+                    "mid_at_fill": "80188.31500000",
+                    "price": "80190.75",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919809837926700",
+                    "side": "sell",
+                    "spread_capture": "0.00243500000"
+                  },
+                  {
+                    "fee": "0.08019075",
+                    "instant_edge_after_fee": "-0.08215575000",
+                    "mid_at_fill": "80192.71500000",
+                    "price": "80190.75",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919810043015400",
+                    "side": "sell",
+                    "spread_capture": "-0.00196500000"
+                  },
+                  {
+                    "fee": "0.08010622",
+                    "instant_edge_after_fee": "-0.08010122000",
+                    "mid_at_fill": "80106.21500000",
+                    "price": "80106.22",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919980263425300",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08010622",
+                    "instant_edge_after_fee": "-0.08010122000",
+                    "mid_at_fill": "80106.21500000",
+                    "price": "80106.22",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792919980264530300",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08023436",
+                    "instant_edge_after_fee": "-0.07021936000",
+                    "mid_at_fill": "80224.34500000",
+                    "price": "80234.36",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920069085444400",
+                    "side": "sell",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08023436",
+                    "instant_edge_after_fee": "-0.08043936000",
+                    "mid_at_fill": "80234.56500000",
+                    "price": "80234.36",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920069665747300",
+                    "side": "sell",
+                    "spread_capture": "-0.00020500000"
+                  },
+                  {
+                    "fee": "0.08022457",
+                    "instant_edge_after_fee": "-0.07022957000",
+                    "mid_at_fill": "80234.56500000",
+                    "price": "80224.57",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920071182712100",
+                    "side": "buy",
+                    "spread_capture": "0.00999500000"
+                  },
+                  {
+                    "fee": "0.08022457",
+                    "instant_edge_after_fee": "-0.07022957000",
+                    "mid_at_fill": "80234.56500000",
+                    "price": "80224.57",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920071183716000",
+                    "side": "buy",
+                    "spread_capture": "0.00999500000"
+                  },
+                  {
+                    "fee": "0.08022457",
+                    "instant_edge_after_fee": "-0.08554957000",
+                    "mid_at_fill": "80219.24500000",
+                    "price": "80224.57",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920071245603700",
+                    "side": "buy",
+                    "spread_capture": "-0.00532500000"
+                  },
+                  {
+                    "fee": "0.08021874",
+                    "instant_edge_after_fee": "-0.07480374000",
+                    "mid_at_fill": "80213.32500000",
+                    "price": "80218.74",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920180622912000",
+                    "side": "sell",
+                    "spread_capture": "0.00541500000"
+                  },
+                  {
+                    "fee": "0.08021874",
+                    "instant_edge_after_fee": "-0.07480374000",
+                    "mid_at_fill": "80213.32500000",
+                    "price": "80218.74",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920180624031200",
+                    "side": "sell",
+                    "spread_capture": "0.00541500000"
+                  },
+                  {
+                    "fee": "0.08021874",
+                    "instant_edge_after_fee": "-0.08562374000",
+                    "mid_at_fill": "80224.14500000",
+                    "price": "80218.74",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920180851718800",
+                    "side": "sell",
+                    "spread_capture": "-0.00540500000"
+                  },
+                  {
+                    "fee": "0.08022915",
+                    "instant_edge_after_fee": "-0.07824415000",
+                    "mid_at_fill": "80227.16500000",
+                    "price": "80229.15",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920208091678300",
+                    "side": "sell",
+                    "spread_capture": "0.00198500000"
+                  },
+                  {
+                    "fee": "0.08022915",
+                    "instant_edge_after_fee": "-0.08374415000",
+                    "mid_at_fill": "80232.66500000",
+                    "price": "80229.15",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920208197436200",
+                    "side": "sell",
+                    "spread_capture": "-0.00351500000"
+                  },
+                  {
+                    "fee": "0.08026349",
+                    "instant_edge_after_fee": "-0.07024849000",
+                    "mid_at_fill": "80253.47500000",
+                    "price": "80263.49",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920295331808800",
+                    "side": "sell",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08026349",
+                    "instant_edge_after_fee": "-0.08175849000",
+                    "mid_at_fill": "80264.98500000",
+                    "price": "80263.49",
+                    "quantity": "0.001",
+                    "received_time_ns": "1792920295479258600",
+                    "side": "sell",
+                    "spread_capture": "-0.00149500000"
+                  }
+                ],
+                "instant_edge_below_fee_fills": 24,
+                "inventory_revaluation": "-0.23194000000",
+                "spread_capture": "0.11749000000"
+              },
+              "fills": 24,
+              "final_inventory": "-0.002",
+              "maximum_absolute_inventory": "0.008",
+              "net_pnl": "-2.03947562000",
+              "rejected_orders": 29,
+              "segment_index": 0,
+              "submitted_orders": 796,
+              "terminal_reason": "end_of_capture",
+              "turnover": "1925.02562"
+            }
+          ],
+          "turnover": "1925.02562"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-003.jsonl",
+          "capture_sha256": "333f6a4197ce3fa3877f2e13a9d33488cc6fe8ddfa419cc1a494d59db4f61860",
+          "fees": "0.32268764",
+          "fills": 4,
+          "net_pnl": "-0.05854764000",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 214,
+                "buy": 55,
+                "off": 545,
+                "sell": 139
+              },
+              "decision_steps": 953,
+              "fees": "0.32268764",
+              "fill_diagnostics": {
+                "fills": [
+                  {
+                    "fee": "0.08067191",
+                    "instant_edge_after_fee": "-0.07876691000",
+                    "mid_at_fill": "80670.00500000",
+                    "price": "80671.91",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793125544204657700",
+                    "side": "sell",
+                    "spread_capture": "0.00190500000"
+                  },
+                  {
+                    "fee": "0.08067191",
+                    "instant_edge_after_fee": "-0.07876691000",
+                    "mid_at_fill": "80670.00500000",
+                    "price": "80671.91",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793125544205669000",
+                    "side": "sell",
+                    "spread_capture": "0.00190500000"
+                  },
+                  {
+                    "fee": "0.08067191",
+                    "instant_edge_after_fee": "-0.07876691000",
+                    "mid_at_fill": "80670.00500000",
+                    "price": "80671.91",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793125544206669100",
+                    "side": "sell",
+                    "spread_capture": "0.00190500000"
+                  },
+                  {
+                    "fee": "0.08067191",
+                    "instant_edge_after_fee": "-0.08276691000",
+                    "mid_at_fill": "80674.00500000",
+                    "price": "80671.91",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793125544312050100",
+                    "side": "sell",
+                    "spread_capture": "-0.00209500000"
+                  }
+                ],
+                "instant_edge_below_fee_fills": 4,
+                "inventory_revaluation": "0.26052000000",
+                "spread_capture": "0.00362000000"
+              },
+              "fills": 4,
+              "final_inventory": "-0.004",
+              "maximum_absolute_inventory": "0.004",
+              "net_pnl": "-0.05854764000",
+              "rejected_orders": 9,
+              "segment_index": 0,
+              "submitted_orders": 627,
+              "terminal_reason": "end_of_capture",
+              "turnover": "322.68764"
+            }
+          ],
+          "turnover": "322.68764"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-004.jsonl",
+          "capture_sha256": "c2accd13ff112e122a9d0315c97f216dda8021c9f25ba1ff24ab238aa2d7c0a7",
+          "fees": "0.32265252",
+          "fills": 4,
+          "net_pnl": "-0.09419252000",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 120,
+                "buy": 32,
+                "off": 669,
+                "sell": 134
+              },
+              "decision_steps": 955,
+              "fees": "0.32265252",
+              "fill_diagnostics": {
+                "fills": [
+                  {
+                    "fee": "0.08066313",
+                    "instant_edge_after_fee": "-0.07064813000",
+                    "mid_at_fill": "80653.11500000",
+                    "price": "80663.13",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793126554646121500",
+                    "side": "sell",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08066313",
+                    "instant_edge_after_fee": "-0.07064813000",
+                    "mid_at_fill": "80653.11500000",
+                    "price": "80663.13",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793126554647123100",
+                    "side": "sell",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08066313",
+                    "instant_edge_after_fee": "-0.07064813000",
+                    "mid_at_fill": "80653.11500000",
+                    "price": "80663.13",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793126554649124900",
+                    "side": "sell",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08066313",
+                    "instant_edge_after_fee": "-0.08352813000",
+                    "mid_at_fill": "80665.99500000",
+                    "price": "80663.13",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793126555098434100",
+                    "side": "sell",
+                    "spread_capture": "-0.00286500000"
+                  }
+                ],
+                "instant_edge_below_fee_fills": 4,
+                "inventory_revaluation": "0.20128000000",
+                "spread_capture": "0.02718000000"
+              },
+              "fills": 4,
+              "final_inventory": "-0.004",
+              "maximum_absolute_inventory": "0.004",
+              "net_pnl": "-0.09419252000",
+              "rejected_orders": 2,
+              "segment_index": 0,
+              "submitted_orders": 405,
+              "terminal_reason": "end_of_capture",
+              "turnover": "322.65252"
+            }
+          ],
+          "turnover": "322.65252"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-005.jsonl",
+          "capture_sha256": "8c4bf301c7a325005d0c4f2573b34d5c86e944ccc63dab18b42848b27e9dc97b",
+          "fees": "0.6483111200000",
+          "fills": 15,
+          "net_pnl": "-0.1932311200000000",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 127,
+                "buy": 69,
+                "off": 611,
+                "sell": 141
+              },
+              "decision_steps": 948,
+              "fees": "0.6483111200000",
+              "fill_diagnostics": {
+                "fills": [
+                  {
+                    "fee": "0.08090601",
+                    "instant_edge_after_fee": "-0.08031101000",
+                    "mid_at_fill": "80905.41500000",
+                    "price": "80906.01",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793153335484213000",
+                    "side": "sell",
+                    "spread_capture": "0.00059500000"
+                  },
+                  {
+                    "fee": "0.08101101",
+                    "instant_edge_after_fee": "-0.07099601000",
+                    "mid_at_fill": "81000.99500000",
+                    "price": "81011.01",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793153479676131400",
+                    "side": "sell",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08101101",
+                    "instant_edge_after_fee": "-0.07099601000",
+                    "mid_at_fill": "81000.99500000",
+                    "price": "81011.01",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793153479678140100",
+                    "side": "sell",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.0056745472000",
+                    "instant_edge_after_fee": "-0.0056741972000000",
+                    "mid_at_fill": "81064.95500000",
+                    "price": "81064.96",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793153775398840500",
+                    "side": "sell",
+                    "spread_capture": "3.500000000E-7"
+                  },
+                  {
+                    "fee": "0.0056745472000",
+                    "instant_edge_after_fee": "-0.0056741972000000",
+                    "mid_at_fill": "81064.95500000",
+                    "price": "81064.96",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793153775398840500",
+                    "side": "sell",
+                    "spread_capture": "3.500000000E-7"
+                  },
+                  {
+                    "fee": "0.0056745472000",
+                    "instant_edge_after_fee": "-0.0056741972000000",
+                    "mid_at_fill": "81064.95500000",
+                    "price": "81064.96",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793153775398840500",
+                    "side": "sell",
+                    "spread_capture": "3.500000000E-7"
+                  },
+                  {
+                    "fee": "0.0056745472000",
+                    "instant_edge_after_fee": "-0.0056741972000000",
+                    "mid_at_fill": "81064.95500000",
+                    "price": "81064.96",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793153775398840500",
+                    "side": "sell",
+                    "spread_capture": "3.500000000E-7"
+                  },
+                  {
+                    "fee": "0.0056745472000",
+                    "instant_edge_after_fee": "-0.0056741972000000",
+                    "mid_at_fill": "81064.95500000",
+                    "price": "81064.96",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793153775398840500",
+                    "side": "sell",
+                    "spread_capture": "3.500000000E-7"
+                  },
+                  {
+                    "fee": "0.0056745472000",
+                    "instant_edge_after_fee": "-0.0056741972000000",
+                    "mid_at_fill": "81064.95500000",
+                    "price": "81064.96",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793153775398840500",
+                    "side": "sell",
+                    "spread_capture": "3.500000000E-7"
+                  },
+                  {
+                    "fee": "0.0056745472000",
+                    "instant_edge_after_fee": "-0.0056741972000000",
+                    "mid_at_fill": "81064.95500000",
+                    "price": "81064.96",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793153775398840500",
+                    "side": "sell",
+                    "spread_capture": "3.500000000E-7"
+                  },
+                  {
+                    "fee": "0.0413431296000",
+                    "instant_edge_after_fee": "-0.0413405796000000",
+                    "mid_at_fill": "81064.95500000",
+                    "price": "81064.96",
+                    "quantity": "0.00051000",
+                    "received_time_ns": "1793153775398840500",
+                    "side": "sell",
+                    "spread_capture": "0.0000025500000000"
+                  },
+                  {
+                    "fee": "0.08106496",
+                    "instant_edge_after_fee": "-0.08105996000",
+                    "mid_at_fill": "81064.95500000",
+                    "price": "81064.96",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793153775400851400",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08106496",
+                    "instant_edge_after_fee": "-0.08105996000",
+                    "mid_at_fill": "81064.95500000",
+                    "price": "81064.96",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793153775402861800",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08106496",
+                    "instant_edge_after_fee": "-0.08443996000",
+                    "mid_at_fill": "81068.33500000",
+                    "price": "81064.96",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793153775569994600",
+                    "side": "sell",
+                    "spread_capture": "-0.00337500000"
+                  },
+                  {
+                    "fee": "0.08112325",
+                    "instant_edge_after_fee": "-0.07587825000",
+                    "mid_at_fill": "81118.00500000",
+                    "price": "81123.25",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793153932532672500",
+                    "side": "sell",
+                    "spread_capture": "0.00524500000"
+                  }
+                ],
+                "instant_edge_below_fee_fills": 15,
+                "inventory_revaluation": "0.4325700000000000",
+                "spread_capture": "0.0225100000000000"
+              },
+              "fills": 15,
+              "final_inventory": "-0.00800000",
+              "maximum_absolute_inventory": "0.00800000",
+              "net_pnl": "-0.1932311200000000",
+              "rejected_orders": 31,
+              "segment_index": 0,
+              "submitted_orders": 489,
+              "terminal_reason": "end_of_capture",
+              "turnover": "648.3111200000"
+            }
+          ],
+          "turnover": "648.3111200000"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-006.jsonl",
+          "capture_sha256": "171f7b35204902e051990019e55e99a0b0883e77b303d3119ca5a558c1f0c13c",
+          "fees": "0.24289209",
+          "fills": 3,
+          "net_pnl": "-0.53504709000",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 187,
+                "buy": 43,
+                "off": 557,
+                "sell": 167
+              },
+              "decision_steps": 954,
+              "fees": "0.24289209",
+              "fill_diagnostics": {
+                "fills": [
+                  {
+                    "fee": "0.08096403",
+                    "instant_edge_after_fee": "-0.07927903000",
+                    "mid_at_fill": "80962.34500000",
+                    "price": "80964.03",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793155810809262300",
+                    "side": "sell",
+                    "spread_capture": "0.00168500000"
+                  },
+                  {
+                    "fee": "0.08096403",
+                    "instant_edge_after_fee": "-0.07927903000",
+                    "mid_at_fill": "80962.34500000",
+                    "price": "80964.03",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793155810870206700",
+                    "side": "sell",
+                    "spread_capture": "0.00168500000"
+                  },
+                  {
+                    "fee": "0.08096403",
+                    "instant_edge_after_fee": "-0.07927903000",
+                    "mid_at_fill": "80962.34500000",
+                    "price": "80964.03",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793155810871251200",
+                    "side": "sell",
+                    "spread_capture": "0.00168500000"
+                  }
+                ],
+                "instant_edge_below_fee_fills": 3,
+                "inventory_revaluation": "-0.29721000000",
+                "spread_capture": "0.00505500000"
+              },
+              "fills": 3,
+              "final_inventory": "-0.003",
+              "maximum_absolute_inventory": "0.003",
+              "net_pnl": "-0.53504709000",
+              "rejected_orders": 6,
+              "segment_index": 0,
+              "submitted_orders": 573,
+              "terminal_reason": "end_of_capture",
+              "turnover": "242.89209"
+            }
+          ],
+          "turnover": "242.89209"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-007.jsonl",
+          "capture_sha256": "c6fc3ce1cb0437e42cbf028d9b8eeb3bdcac677d7b8e5186eee2461f43376a5a",
+          "fees": "0.64762392",
+          "fills": 8,
+          "net_pnl": "-0.82222392000",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 72,
+                "buy": 23,
+                "off": 718,
+                "sell": 139
+              },
+              "decision_steps": 952,
+              "fees": "0.64762392",
+              "fill_diagnostics": {
+                "fills": [
+                  {
+                    "fee": "0.08092068",
+                    "instant_edge_after_fee": "-0.07090568000",
+                    "mid_at_fill": "80910.66500000",
+                    "price": "80920.68",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793156690523602300",
+                    "side": "sell",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08092068",
+                    "instant_edge_after_fee": "-0.07090568000",
+                    "mid_at_fill": "80910.66500000",
+                    "price": "80920.68",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793156690533315700",
+                    "side": "sell",
+                    "spread_capture": "0.01001500000"
+                  },
+                  {
+                    "fee": "0.08096376",
+                    "instant_edge_after_fee": "-0.08095876000",
+                    "mid_at_fill": "80963.75500000",
+                    "price": "80963.76",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793157275325888600",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08096376",
+                    "instant_edge_after_fee": "-0.08095876000",
+                    "mid_at_fill": "80963.75500000",
+                    "price": "80963.76",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793157275327480400",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08096376",
+                    "instant_edge_after_fee": "-0.08095876000",
+                    "mid_at_fill": "80963.75500000",
+                    "price": "80963.76",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793157275329544000",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08096376",
+                    "instant_edge_after_fee": "-0.08095876000",
+                    "mid_at_fill": "80963.75500000",
+                    "price": "80963.76",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793157275330557300",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08096376",
+                    "instant_edge_after_fee": "-0.08095876000",
+                    "mid_at_fill": "80963.75500000",
+                    "price": "80963.76",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793157275332432900",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08096376",
+                    "instant_edge_after_fee": "-0.08656876000",
+                    "mid_at_fill": "80969.36500000",
+                    "price": "80963.76",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793157275591515600",
+                    "side": "sell",
+                    "spread_capture": "-0.00560500000"
+                  }
+                ],
+                "instant_edge_below_fee_fills": 8,
+                "inventory_revaluation": "-0.18905000000",
+                "spread_capture": "0.01445000000"
+              },
+              "fills": 8,
+              "final_inventory": "-0.008",
+              "maximum_absolute_inventory": "0.008",
+              "net_pnl": "-0.82222392000",
+              "rejected_orders": 3,
+              "segment_index": 0,
+              "submitted_orders": 304,
+              "terminal_reason": "end_of_capture",
+              "turnover": "647.62392"
+            }
+          ],
+          "turnover": "647.62392"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-008.jsonl",
+          "capture_sha256": "2f8a7e5e305e08d0035612bd8ae4a0a401b2507378062d933e7592d70f3a5c02",
+          "fees": "0.32474194",
+          "fills": 4,
+          "net_pnl": "-0.32866194000",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 102,
+                "buy": 34,
+                "off": 689,
+                "sell": 126
+              },
+              "decision_steps": 951,
+              "fees": "0.32474194",
+              "fill_diagnostics": {
+                "fills": [
+                  {
+                    "fee": "0.08117055",
+                    "instant_edge_after_fee": "-0.08116555000",
+                    "mid_at_fill": "81170.54500000",
+                    "price": "81170.55",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793158486368038500",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08117055",
+                    "instant_edge_after_fee": "-0.08116555000",
+                    "mid_at_fill": "81170.54500000",
+                    "price": "81170.55",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793158486384237400",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08118240",
+                    "instant_edge_after_fee": "-0.07620740000",
+                    "mid_at_fill": "81177.42500000",
+                    "price": "81182.40",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793158729873297100",
+                    "side": "sell",
+                    "spread_capture": "0.00497500000"
+                  },
+                  {
+                    "fee": "0.08121844",
+                    "instant_edge_after_fee": "-0.08121344000",
+                    "mid_at_fill": "81218.43500000",
+                    "price": "81218.44",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793158898648948000",
+                    "side": "sell",
+                    "spread_capture": "0.00000500000"
+                  }
+                ],
+                "instant_edge_below_fee_fills": 4,
+                "inventory_revaluation": "-0.00891000000",
+                "spread_capture": "0.00499000000"
+              },
+              "fills": 4,
+              "final_inventory": "-0.004",
+              "maximum_absolute_inventory": "0.004",
+              "net_pnl": "-0.32866194000",
+              "rejected_orders": 7,
+              "segment_index": 0,
+              "submitted_orders": 370,
+              "terminal_reason": "end_of_capture",
+              "turnover": "324.74194"
+            }
+          ],
+          "turnover": "324.74194"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-009.jsonl",
+          "capture_sha256": "be62db9b41151f34e3783ba20e8f347f11483d6b97a263fbc9fcb13e4103f74d",
+          "fees": "1.7735517500000",
+          "fills": 29,
+          "net_pnl": "-0.8922517500000000",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 170,
+                "buy": 84,
+                "off": 503,
+                "sell": 179
+              },
+              "decision_steps": 936,
+              "fees": "1.7735517500000",
+              "fill_diagnostics": {
+                "fills": [
+                  {
+                    "fee": "0.08062345",
+                    "instant_edge_after_fee": "-0.07999845000",
+                    "mid_at_fill": "80622.82500000",
+                    "price": "80623.45",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793196708222047400",
+                    "side": "sell",
+                    "spread_capture": "0.00062500000"
+                  },
+                  {
+                    "fee": "0.08062345",
+                    "instant_edge_after_fee": "-0.07999845000",
+                    "mid_at_fill": "80622.82500000",
+                    "price": "80623.45",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793196708224058200",
+                    "side": "sell",
+                    "spread_capture": "0.00062500000"
+                  },
+                  {
+                    "fee": "0.08063540",
+                    "instant_edge_after_fee": "-0.07724040000",
+                    "mid_at_fill": "80632.00500000",
+                    "price": "80635.40",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793196759760450000",
+                    "side": "sell",
+                    "spread_capture": "0.00339500000"
+                  },
+                  {
+                    "fee": "0.08063540",
+                    "instant_edge_after_fee": "-0.07724040000",
+                    "mid_at_fill": "80632.00500000",
+                    "price": "80635.40",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793196759762459000",
+                    "side": "sell",
+                    "spread_capture": "0.00339500000"
+                  },
+                  {
+                    "fee": "0.08066967",
+                    "instant_edge_after_fee": "-0.07900467000",
+                    "mid_at_fill": "80668.00500000",
+                    "price": "80669.67",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793196770387314700",
+                    "side": "sell",
+                    "spread_capture": "0.00166500000"
+                  },
+                  {
+                    "fee": "0.08066967",
+                    "instant_edge_after_fee": "-0.07900467000",
+                    "mid_at_fill": "80668.00500000",
+                    "price": "80669.67",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793196770388535500",
+                    "side": "sell",
+                    "spread_capture": "0.00166500000"
+                  },
+                  {
+                    "fee": "0.08068442",
+                    "instant_edge_after_fee": "-0.08067942000",
+                    "mid_at_fill": "80684.42500000",
+                    "price": "80684.42",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793196813322820900",
+                    "side": "buy",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08068442",
+                    "instant_edge_after_fee": "-0.08067942000",
+                    "mid_at_fill": "80684.42500000",
+                    "price": "80684.42",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793196813324831700",
+                    "side": "buy",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08068442",
+                    "instant_edge_after_fee": "-0.08067942000",
+                    "mid_at_fill": "80684.42500000",
+                    "price": "80684.42",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793196813325839200",
+                    "side": "buy",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08068442",
+                    "instant_edge_after_fee": "-0.08440942000",
+                    "mid_at_fill": "80680.69500000",
+                    "price": "80684.42",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793196813447765300",
+                    "side": "buy",
+                    "spread_capture": "-0.00372500000"
+                  },
+                  {
+                    "fee": "0.0056414414000",
+                    "instant_edge_after_fee": "-0.0055318914000000",
+                    "mid_at_fill": "80590.45500000",
+                    "price": "80592.02",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793197040699356300",
+                    "side": "sell",
+                    "spread_capture": "0.0001095500000000"
+                  },
+                  {
+                    "fee": "0.0056414414000",
+                    "instant_edge_after_fee": "-0.0055318914000000",
+                    "mid_at_fill": "80590.45500000",
+                    "price": "80592.02",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793197040699356300",
+                    "side": "sell",
+                    "spread_capture": "0.0001095500000000"
+                  },
+                  {
+                    "fee": "0.0056414414000",
+                    "instant_edge_after_fee": "-0.0055318914000000",
+                    "mid_at_fill": "80590.45500000",
+                    "price": "80592.02",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793197040699356300",
+                    "side": "sell",
+                    "spread_capture": "0.0001095500000000"
+                  },
+                  {
+                    "fee": "0.0056414414000",
+                    "instant_edge_after_fee": "-0.0055318914000000",
+                    "mid_at_fill": "80590.45500000",
+                    "price": "80592.02",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793197040699356300",
+                    "side": "sell",
+                    "spread_capture": "0.0001095500000000"
+                  },
+                  {
+                    "fee": "0.0056414414000",
+                    "instant_edge_after_fee": "-0.0055318914000000",
+                    "mid_at_fill": "80590.45500000",
+                    "price": "80592.02",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793197040699356300",
+                    "side": "sell",
+                    "spread_capture": "0.0001095500000000"
+                  },
+                  {
+                    "fee": "0.0056414414000",
+                    "instant_edge_after_fee": "-0.0055318914000000",
+                    "mid_at_fill": "80590.45500000",
+                    "price": "80592.02",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793197040699356300",
+                    "side": "sell",
+                    "spread_capture": "0.0001095500000000"
+                  },
+                  {
+                    "fee": "0.0056414414000",
+                    "instant_edge_after_fee": "-0.0055318914000000",
+                    "mid_at_fill": "80590.45500000",
+                    "price": "80592.02",
+                    "quantity": "0.00007000",
+                    "received_time_ns": "1793197040699356300",
+                    "side": "sell",
+                    "spread_capture": "0.0001095500000000"
+                  },
+                  {
+                    "fee": "0.0411019302000",
+                    "instant_edge_after_fee": "-0.0403037802000000",
+                    "mid_at_fill": "80590.45500000",
+                    "price": "80592.02",
+                    "quantity": "0.00051000",
+                    "received_time_ns": "1793197040699356300",
+                    "side": "sell",
+                    "spread_capture": "0.0007981500000000"
+                  },
+                  {
+                    "fee": "0.08060113",
+                    "instant_edge_after_fee": "-0.07758613000",
+                    "mid_at_fill": "80598.11500000",
+                    "price": "80601.13",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793197142015674600",
+                    "side": "sell",
+                    "spread_capture": "0.00301500000"
+                  },
+                  {
+                    "fee": "0.08060113",
+                    "instant_edge_after_fee": "-0.07758613000",
+                    "mid_at_fill": "80598.11500000",
+                    "price": "80601.13",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793197142020452700",
+                    "side": "sell",
+                    "spread_capture": "0.00301500000"
+                  },
+                  {
+                    "fee": "0.08060113",
+                    "instant_edge_after_fee": "-0.07758613000",
+                    "mid_at_fill": "80598.11500000",
+                    "price": "80601.13",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793197142023431700",
+                    "side": "sell",
+                    "spread_capture": "0.00301500000"
+                  },
+                  {
+                    "fee": "0.08060113",
+                    "instant_edge_after_fee": "-0.07758613000",
+                    "mid_at_fill": "80598.11500000",
+                    "price": "80601.13",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793197142024455700",
+                    "side": "sell",
+                    "spread_capture": "0.00301500000"
+                  },
+                  {
+                    "fee": "0.08060113",
+                    "instant_edge_after_fee": "-0.07758613000",
+                    "mid_at_fill": "80598.11500000",
+                    "price": "80601.13",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793197142026110100",
+                    "side": "sell",
+                    "spread_capture": "0.00301500000"
+                  },
+                  {
+                    "fee": "0.08060113",
+                    "instant_edge_after_fee": "-0.07758613000",
+                    "mid_at_fill": "80598.11500000",
+                    "price": "80601.13",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793197142028140400",
+                    "side": "sell",
+                    "spread_capture": "0.00301500000"
+                  },
+                  {
+                    "fee": "0.08060113",
+                    "instant_edge_after_fee": "-0.08747613000",
+                    "mid_at_fill": "80608.00500000",
+                    "price": "80601.13",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793197142168226000",
+                    "side": "sell",
+                    "spread_capture": "-0.00687500000"
+                  },
+                  {
+                    "fee": "0.08055391",
+                    "instant_edge_after_fee": "-0.08054891000",
+                    "mid_at_fill": "80553.91500000",
+                    "price": "80553.91",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793197288045071700",
+                    "side": "buy",
+                    "spread_capture": "0.00000500000"
+                  },
+                  {
+                    "fee": "0.08055391",
+                    "instant_edge_after_fee": "-0.08194891000",
+                    "mid_at_fill": "80552.51500000",
+                    "price": "80553.91",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793197288150137300",
+                    "side": "buy",
+                    "spread_capture": "-0.00139500000"
+                  },
+                  {
+                    "fee": "0.08052464",
+                    "instant_edge_after_fee": "-0.07426964000",
+                    "mid_at_fill": "80518.38500000",
+                    "price": "80524.64",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793197468401207700",
+                    "side": "sell",
+                    "spread_capture": "0.00625500000"
+                  },
+                  {
+                    "fee": "0.08052464",
+                    "instant_edge_after_fee": "-0.07426964000",
+                    "mid_at_fill": "80518.38500000",
+                    "price": "80524.64",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793197468409335800",
+                    "side": "sell",
+                    "spread_capture": "0.00625500000"
+                  }
+                ],
+                "instant_edge_below_fee_fills": 29,
+                "inventory_revaluation": "0.8497400000000000",
+                "spread_capture": "0.0315600000000000"
+              },
+              "fills": 29,
+              "final_inventory": "-0.01000000",
+              "maximum_absolute_inventory": "0.01000000",
+              "net_pnl": "-0.8922517500000000",
+              "rejected_orders": 25,
+              "segment_index": 0,
+              "submitted_orders": 524,
+              "terminal_reason": "end_of_capture",
+              "turnover": "1773.5517500000"
+            }
+          ],
+          "turnover": "1773.5517500000"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-010.jsonl",
+          "capture_sha256": "299ca7bc6ecf7f08d545a7a902f964400596959ee27630b82d60dd3a64ce0155",
+          "fees": "0.24182999",
+          "fills": 3,
+          "net_pnl": "-0.40022499000",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 174,
+                "buy": 55,
+                "off": 521,
+                "sell": 197
+              },
+              "decision_steps": 947,
+              "fees": "0.24182999",
+              "fill_diagnostics": {
+                "fills": [
+                  {
+                    "fee": "0.08052007",
+                    "instant_edge_after_fee": "-0.08045507000",
+                    "mid_at_fill": "80520.00500000",
+                    "price": "80520.07",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793199229203081800",
+                    "side": "sell",
+                    "spread_capture": "0.00006500000"
+                  },
+                  {
+                    "fee": "0.08065496",
+                    "instant_edge_after_fee": "-0.07845996000",
+                    "mid_at_fill": "80652.76500000",
+                    "price": "80654.96",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793199903958311100",
+                    "side": "sell",
+                    "spread_capture": "0.00219500000"
+                  },
+                  {
+                    "fee": "0.08065496",
+                    "instant_edge_after_fee": "-0.08367996000",
+                    "mid_at_fill": "80657.98500000",
+                    "price": "80654.96",
+                    "quantity": "0.001",
+                    "received_time_ns": "1793199904034511700",
+                    "side": "sell",
+                    "spread_capture": "-0.00302500000"
+                  }
+                ],
+                "instant_edge_below_fee_fills": 3,
+                "inventory_revaluation": "-0.15763000000",
+                "spread_capture": "-0.00076500000"
+              },
+              "fills": 3,
+              "final_inventory": "-0.003",
+              "maximum_absolute_inventory": "0.003",
+              "net_pnl": "-0.40022499000",
+              "rejected_orders": 4,
+              "segment_index": 0,
+              "submitted_orders": 593,
+              "terminal_reason": "end_of_capture",
+              "turnover": "241.82999"
+            }
+          ],
+          "turnover": "241.82999"
+        }
+      ],
+      "variant": "unguarded"
+    },
+    {
+      "aggregate": {
+        "fees": "0",
+        "fills": 0,
+        "gross_pnl": "0E-8",
+        "instant_edge_below_fee_fills": 0,
+        "inventory_revaluation": "0E-8",
+        "net_pnl": "0E-8",
+        "spread_capture": "0",
+        "turnover": "0"
+      },
+      "configuration": {
+        "action_schema_version": 3,
+        "batch_size": 64,
+        "cancel_latency_ns": 1000000,
+        "clip_range": 0.2,
+        "decision_interval_ns": 1000000000,
+        "device": "cpu",
+        "entropy_coefficient": 0.01,
+        "entry_fee_buffer_bps": "0",
+        "gae_lambda": 0.99,
+        "gamma": 0.999,
+        "half_spread_tick_choices": [
+          1,
+          100,
+          1000,
+          8000,
+          10000
+        ],
+        "hidden_layers": 2,
+        "hidden_width": 64,
+        "initial_cash": "1000000",
+        "inventory_penalty_per_second": "0.01",
+        "learning_rate": 0.0003,
+        "maker_fee_rate": "0.001",
+        "max_abs_inventory": "0.01",
+        "max_grad_norm": 0.5,
+        "maximum_absolute_skew_ticks": 2,
+        "maximum_half_spread_ticks": 10000,
+        "n_epochs": 10,
+        "n_steps": 2048,
+        "observation_schema_version": 2,
+        "order_latency_ns": 1000000,
+        "quantity": "0.001",
+        "reward_scale": "0.01",
+        "tick_size": "0.01",
+        "torch_deterministic_algorithms": true,
+        "torch_threads": 1,
+        "value_coefficient": 0.5
+      },
+      "policy_overlay": {
+        "entry_fee_buffer_bps": "0"
+      },
+      "sessions": [
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-001.jsonl",
+          "capture_sha256": "f1bee230fc3eace0727f71a3d3abb7a2a42a1c206a4a57dffec582737c1f1251",
+          "fees": "0",
+          "fills": 0,
+          "net_pnl": "0E-8",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 246,
+                "buy": 40,
+                "off": 461,
+                "sell": 213
+              },
+              "decision_steps": 960,
+              "fees": "0",
+              "fill_diagnostics": {
+                "fills": [],
+                "instant_edge_below_fee_fills": 0,
+                "inventory_revaluation": "0E-8",
+                "spread_capture": "0"
+              },
+              "fills": 0,
+              "final_inventory": "0",
+              "maximum_absolute_inventory": "0",
+              "net_pnl": "0E-8",
+              "rejected_orders": 0,
+              "segment_index": 0,
+              "submitted_orders": 314,
+              "terminal_reason": "end_of_capture",
+              "turnover": "0"
+            }
+          ],
+          "turnover": "0"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-002.jsonl",
+          "capture_sha256": "a17aa05fd45f51dbfb6f22f2313adf67d9f190310737c5635b5960ebb90a5d55",
+          "fees": "0",
+          "fills": 0,
+          "net_pnl": "0E-8",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 217,
+                "buy": 105,
+                "off": 412,
+                "sell": 215
+              },
+              "decision_steps": 949,
+              "fees": "0",
+              "fill_diagnostics": {
+                "fills": [],
+                "instant_edge_below_fee_fills": 0,
+                "inventory_revaluation": "0E-8",
+                "spread_capture": "0"
+              },
+              "fills": 0,
+              "final_inventory": "0",
+              "maximum_absolute_inventory": "0",
+              "net_pnl": "0E-8",
+              "rejected_orders": 0,
+              "segment_index": 0,
+              "submitted_orders": 447,
+              "terminal_reason": "end_of_capture",
+              "turnover": "0"
+            }
+          ],
+          "turnover": "0"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-003.jsonl",
+          "capture_sha256": "333f6a4197ce3fa3877f2e13a9d33488cc6fe8ddfa419cc1a494d59db4f61860",
+          "fees": "0",
+          "fills": 0,
+          "net_pnl": "0E-8",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 389,
+                "buy": 55,
+                "off": 360,
+                "sell": 149
+              },
+              "decision_steps": 953,
+              "fees": "0",
+              "fill_diagnostics": {
+                "fills": [],
+                "instant_edge_below_fee_fills": 0,
+                "inventory_revaluation": "0E-8",
+                "spread_capture": "0"
+              },
+              "fills": 0,
+              "final_inventory": "0",
+              "maximum_absolute_inventory": "0",
+              "net_pnl": "0E-8",
+              "rejected_orders": 0,
+              "segment_index": 0,
+              "submitted_orders": 260,
+              "terminal_reason": "end_of_capture",
+              "turnover": "0"
+            }
+          ],
+          "turnover": "0"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-004.jsonl",
+          "capture_sha256": "c2accd13ff112e122a9d0315c97f216dda8021c9f25ba1ff24ab238aa2d7c0a7",
+          "fees": "0",
+          "fills": 0,
+          "net_pnl": "0E-8",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 439,
+                "buy": 32,
+                "off": 341,
+                "sell": 143
+              },
+              "decision_steps": 955,
+              "fees": "0",
+              "fill_diagnostics": {
+                "fills": [],
+                "instant_edge_below_fee_fills": 0,
+                "inventory_revaluation": "0E-8",
+                "spread_capture": "0"
+              },
+              "fills": 0,
+              "final_inventory": "0",
+              "maximum_absolute_inventory": "0",
+              "net_pnl": "0E-8",
+              "rejected_orders": 0,
+              "segment_index": 0,
+              "submitted_orders": 245,
+              "terminal_reason": "end_of_capture",
+              "turnover": "0"
+            }
+          ],
+          "turnover": "0"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-005.jsonl",
+          "capture_sha256": "8c4bf301c7a325005d0c4f2573b34d5c86e944ccc63dab18b42848b27e9dc97b",
+          "fees": "0",
+          "fills": 0,
+          "net_pnl": "0E-8",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 273,
+                "buy": 69,
+                "off": 424,
+                "sell": 182
+              },
+              "decision_steps": 948,
+              "fees": "0",
+              "fill_diagnostics": {
+                "fills": [],
+                "instant_edge_below_fee_fills": 0,
+                "inventory_revaluation": "0E-8",
+                "spread_capture": "0"
+              },
+              "fills": 0,
+              "final_inventory": "0",
+              "maximum_absolute_inventory": "0",
+              "net_pnl": "0E-8",
+              "rejected_orders": 0,
+              "segment_index": 0,
+              "submitted_orders": 339,
+              "terminal_reason": "end_of_capture",
+              "turnover": "0"
+            }
+          ],
+          "turnover": "0"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-006.jsonl",
+          "capture_sha256": "171f7b35204902e051990019e55e99a0b0883e77b303d3119ca5a558c1f0c13c",
+          "fees": "0",
+          "fills": 0,
+          "net_pnl": "0E-8",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 308,
+                "buy": 43,
+                "off": 431,
+                "sell": 172
+              },
+              "decision_steps": 954,
+              "fees": "0",
+              "fill_diagnostics": {
+                "fills": [],
+                "instant_edge_below_fee_fills": 0,
+                "inventory_revaluation": "0E-8",
+                "spread_capture": "0"
+              },
+              "fills": 0,
+              "final_inventory": "0",
+              "maximum_absolute_inventory": "0",
+              "net_pnl": "0E-8",
+              "rejected_orders": 0,
+              "segment_index": 0,
+              "submitted_orders": 285,
+              "terminal_reason": "end_of_capture",
+              "turnover": "0"
+            }
+          ],
+          "turnover": "0"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-007.jsonl",
+          "capture_sha256": "c6fc3ce1cb0437e42cbf028d9b8eeb3bdcac677d7b8e5186eee2461f43376a5a",
+          "fees": "0",
+          "fills": 0,
+          "net_pnl": "0E-8",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 259,
+                "buy": 23,
+                "off": 481,
+                "sell": 189
+              },
+              "decision_steps": 952,
+              "fees": "0",
+              "fill_diagnostics": {
+                "fills": [],
+                "instant_edge_below_fee_fills": 0,
+                "inventory_revaluation": "0E-8",
+                "spread_capture": "0"
+              },
+              "fills": 0,
+              "final_inventory": "0",
+              "maximum_absolute_inventory": "0",
+              "net_pnl": "0E-8",
+              "rejected_orders": 0,
+              "segment_index": 0,
+              "submitted_orders": 249,
+              "terminal_reason": "end_of_capture",
+              "turnover": "0"
+            }
+          ],
+          "turnover": "0"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-008.jsonl",
+          "capture_sha256": "2f8a7e5e305e08d0035612bd8ae4a0a401b2507378062d933e7592d70f3a5c02",
+          "fees": "0",
+          "fills": 0,
+          "net_pnl": "0E-8",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 310,
+                "buy": 34,
+                "off": 447,
+                "sell": 160
+              },
+              "decision_steps": 951,
+              "fees": "0",
+              "fill_diagnostics": {
+                "fills": [],
+                "instant_edge_below_fee_fills": 0,
+                "inventory_revaluation": "0E-8",
+                "spread_capture": "0"
+              },
+              "fills": 0,
+              "final_inventory": "0",
+              "maximum_absolute_inventory": "0",
+              "net_pnl": "0E-8",
+              "rejected_orders": 0,
+              "segment_index": 0,
+              "submitted_orders": 296,
+              "terminal_reason": "end_of_capture",
+              "turnover": "0"
+            }
+          ],
+          "turnover": "0"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-009.jsonl",
+          "capture_sha256": "be62db9b41151f34e3783ba20e8f347f11483d6b97a263fbc9fcb13e4103f74d",
+          "fees": "0",
+          "fills": 0,
+          "net_pnl": "0E-8",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 282,
+                "buy": 84,
+                "off": 357,
+                "sell": 213
+              },
+              "decision_steps": 936,
+              "fees": "0",
+              "fill_diagnostics": {
+                "fills": [],
+                "instant_edge_below_fee_fills": 0,
+                "inventory_revaluation": "0E-8",
+                "spread_capture": "0"
+              },
+              "fills": 0,
+              "final_inventory": "0",
+              "maximum_absolute_inventory": "0",
+              "net_pnl": "0E-8",
+              "rejected_orders": 0,
+              "segment_index": 0,
+              "submitted_orders": 517,
+              "terminal_reason": "end_of_capture",
+              "turnover": "0"
+            }
+          ],
+          "turnover": "0"
+        },
+        {
+          "capture_file": "btcusdt-ppo-v2-activity-v1-train-010.jsonl",
+          "capture_sha256": "299ca7bc6ecf7f08d545a7a902f964400596959ee27630b82d60dd3a64ce0155",
+          "fees": "0",
+          "fills": 0,
+          "net_pnl": "0E-8",
+          "segment_count": 1,
+          "segments": [
+            {
+              "action_counts": {
+                "both": 294,
+                "buy": 55,
+                "off": 386,
+                "sell": 212
+              },
+              "decision_steps": 947,
+              "fees": "0",
+              "fill_diagnostics": {
+                "fills": [],
+                "instant_edge_below_fee_fills": 0,
+                "inventory_revaluation": "0E-8",
+                "spread_capture": "0"
+              },
+              "fills": 0,
+              "final_inventory": "0",
+              "maximum_absolute_inventory": "0",
+              "net_pnl": "0E-8",
+              "rejected_orders": 0,
+              "segment_index": 0,
+              "submitted_orders": 325,
+              "terminal_reason": "end_of_capture",
+              "turnover": "0"
+            }
+          ],
+          "turnover": "0"
+        }
+      ],
+      "variant": "entry_cost_guard"
+    }
+  ]
+}

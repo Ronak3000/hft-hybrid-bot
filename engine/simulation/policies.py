@@ -9,6 +9,7 @@ from typing import Protocol
 from engine.market_data import L2Book
 
 from .queue_simulator import SIMULATION_DECIMAL_CONTEXT, _decimal, _nonnegative_int
+from .quote_grid import half_spread_choices
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,6 +132,7 @@ class SeededRandomPolicy:
     minimum_half_spread_ticks: int = 1
     maximum_half_spread_ticks: int = 5
     maximum_absolute_skew_ticks: int = 2
+    half_spread_tick_choices: tuple[int, ...] | None = None
     _state: int = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -149,6 +151,11 @@ class SeededRandomPolicy:
             raise ValueError("minimum_half_spread_ticks must be positive")
         if self.minimum_half_spread_ticks > self.maximum_half_spread_ticks:
             raise ValueError("minimum spread must not exceed maximum spread")
+        if self.half_spread_tick_choices is not None:
+            self.half_spread_tick_choices = half_spread_choices(
+                self.maximum_half_spread_ticks, self.half_spread_tick_choices,
+                minimum=self.minimum_half_spread_ticks,
+            )
         self._state = self.seed & ((1 << 64) - 1)
 
     def quote(
@@ -159,9 +166,14 @@ class SeededRandomPolicy:
         center = _mid(book)
         if center is None:
             return QuoteTarget(None, None, self.quantity)
-        half_ticks = self._randint(
-            self.minimum_half_spread_ticks, self.maximum_half_spread_ticks
-        )
+        if self.half_spread_tick_choices is None:
+            half_ticks = self._randint(
+                self.minimum_half_spread_ticks, self.maximum_half_spread_ticks
+            )
+        else:
+            half_ticks = self.half_spread_tick_choices[
+                self._randint(0, len(self.half_spread_tick_choices) - 1)
+            ]
         skew_ticks = self._randint(
             -self.maximum_absolute_skew_ticks, self.maximum_absolute_skew_ticks
         )

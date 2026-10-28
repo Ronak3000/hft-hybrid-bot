@@ -37,3 +37,6 @@ web/node_modules/
 # Saved model weights (ephemeral on Render free tier)
 engine/saved_models/*.zip
 engine/saved_models/*.json
+
+# Local scratch work, screenshots, and private resume-review artifacts
+/tmp/

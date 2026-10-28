@@ -1,62 +1,42 @@
 'use client';
 
 import Link from 'next/link';
+import { Fragment } from 'react';
 import { usePathname } from 'next/navigation';
-import { Activity, BarChart2, BrainCircuit, Settings, TerminalSquare } from 'lucide-react'; // Add BrainCircuit
+import { Activity, ArrowUpRight, BarChart2, BookOpen, BrainCircuit, GitBranch, History, TerminalSquare } from 'lucide-react';
+import { repositoryUrl } from '@/lib/research';
+
+const navItems = [
+  { name: 'Real-data replay', href: '/replay', icon: History },
+  { name: 'Research overview', href: '/research', icon: BookOpen },
+  { name: 'Legacy simulator', href: '/dashboard', icon: Activity },
+  { name: 'Historical data', href: '/backtest', icon: BarChart2 },
+  { name: 'Legacy training', href: '/train', icon: BrainCircuit },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
-
-  // Do not render the sidebar on the landing page
   if (pathname === '/') return null;
-
-    const navItems = [
-    { name: 'Paper Simulator', href: '/dashboard', icon: Activity },
-    { name: 'Historical Data', href: '/backtest', icon: BarChart2 },
-    { name: 'Model Training', href: '/train', icon: BrainCircuit }, // NEW ROUTE
-    ];
-
   return (
-    <div className="w-20 lg:w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col h-screen sticky top-0 shrink-0 z-50">
-      {/* Brand Header */}
-      <Link href="/" className="h-20 flex items-center justify-center lg:justify-start lg:px-6 border-b border-zinc-800">
-        <TerminalSquare className="text-emerald-500 w-8 h-8 shrink-0" />
-        <span className="ml-3 font-bold text-lg text-zinc-50 hidden lg:block tracking-tight">
-          ApexHFT
-        </span>
-      </Link>
-
-      {/* Navigation Links */}
-      <div className="flex-1 py-6 flex flex-col gap-2 px-3 lg:px-4">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-          
-          return (
-            <Link 
-              key={item.name} 
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all group ${
-                isActive 
-                  ? 'bg-emerald-500/10 text-emerald-400' 
-                  : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50'
-              }`}
-            >
-              <Icon size={20} className={isActive ? 'text-emerald-400' : 'text-zinc-500 group-hover:text-zinc-300'} />
-              <span className={`font-medium hidden lg:block ${isActive ? 'text-emerald-400' : ''}`}>
-                {item.name}
-              </span>
-            </Link>
-          );
-        })}
+    <aside className="workspace-sidebar">
+      <Link href="/" className="sidebar-brand" aria-label="ApexHFT home"><TerminalSquare size={27} aria-hidden="true" /><span>Apex<span className="accent-text">HFT</span></span></Link>
+      <div className="sidebar-section-label">WORKSPACE</div>
+      <nav aria-label="Workspace navigation" className="workspace-navigation">
+        {navItems.map(({ name, href, icon: Icon }, index) => (
+          <Fragment key={href}>
+          {index === 2 && <div className="sidebar-section-label">BACKEND REQUIRED</div>}
+          <Link href={href} title={name} aria-label={name} aria-current={pathname === href ? 'page' : undefined} className={`workspace-nav-item ${pathname === href ? 'is-active' : ''}`}>
+            <Icon size={18} aria-hidden="true" /><span>{name}</span>
+          </Link>
+          </Fragment>
+        ))}
+      </nav>
+      <div className="sidebar-bottom">
+        <div className="sidebar-scope"><span className="status-dot" /><div>Research prototype<small>Paper simulation only</small></div></div>
+        <a href={repositoryUrl} target="_blank" rel="noopener noreferrer" className="workspace-nav-item" aria-label="View source on GitHub" title="View source on GitHub">
+          <GitBranch size={18} aria-hidden="true" /><span>View source</span><ArrowUpRight size={13} className="sidebar-external" aria-hidden="true" />
+        </a>
       </div>
-
-      {/* Bottom Settings Link */}
-      <div className="p-4 border-t border-zinc-800">
-        <button className="flex items-center justify-center lg:justify-start gap-3 w-full px-3 py-3 rounded-lg text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50 transition-all">
-          <Settings size={20} />
-          <span className="font-medium hidden lg:block">Settings</span>
-        </button>
-      </div>
-    </div>
+    </aside>
   );
 }

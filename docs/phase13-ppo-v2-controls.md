@@ -58,6 +58,30 @@ reports remain valid version-1 historical artifacts.
 
 ## Beginner-safe PPO v2 study
 
+### Optional factorized actions
+
+`--action-schema-version 2` selects `MultiDiscrete([2, widths, skews])`:
+the first categorical decision chooses whether to quote, followed by width
+and skew indices. A zero quote flag always cancels both sides; its other
+indices have no effect on execution. At uniform action probabilities, this
+allocates half the probability to abstaining instead of one action out of
+26 in the default schema. Actual neural-network probabilities are learned,
+not fixed at one half.
+
+Version 1 remains the default scalar action space. Version 2 preserves the
+same quote targets, inventory limits, fill/accounting rules, and canonical
+previous-action observation. Model sidecars record the action schema and both
+evaluators reconstruct it; missing fields in old sidecars mean version 1.
+Models cannot switch action spaces after training. Width and skew heads still
+contribute to the factorized policy distribution even when the quote flag is
+zero, so this is a bounded ablation, not a fully conditional/masked policy.
+
+The tests compare every small-grid quote action and its complete replay
+trajectory against version 1, reject fractional or malformed actions, and
+exercise version 2 through both held-out evaluators. This establishes software
+compatibility, not better P&L. Assess it only on training/validation, then use
+a fresh frozen final-test window.
+
 Do not retrain and evaluate on `test-001` or `test-002`; they were opened for
 the PPO v1 final result. Keep them as historical evidence only.
 
@@ -86,6 +110,10 @@ An example v2 training argument is:
 This is an experiment candidate, not a recommended or validated setting.
 
 ## Next model changes
+
+The [Phase 14 guide](phase14-quote-grid-and-study.md) adds explicit sparse width
+choices, a training-only fee preflight, and the next immutable collection plan.
+It addresses quote-range scale before changing the observation vector.
 
 Only after the activity-control ablation should the observation vector change.
 The next candidates are causal rolling order-flow imbalance, signed trade
