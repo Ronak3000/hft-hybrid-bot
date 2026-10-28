@@ -215,7 +215,7 @@ def evaluate_ppo_artifacts(
 
 
 def _evaluate_capture(
-    predictor: Predictor, capture_path: Path, config: dict[str, Any]
+    predictor: Predictor, capture_path: Path, config: dict[str, Any], *, fill_diagnostics: bool = False,
 ) -> dict[str, Any]:
     simulation = SimulationConfig(
         initial_cash=Decimal(config["initial_cash"]),
@@ -236,6 +236,11 @@ def _evaluate_capture(
             config["inventory_penalty_per_second"]
         ),
         decision_interval_ns=int(config.get("decision_interval_ns", 0)),
+        action_schema_version=int(config.get("action_schema_version", 1)),
+        half_spread_tick_choices=config.get("half_spread_tick_choices"),
+        observation_schema_version=int(config.get("observation_schema_version", 1)),
+        entry_fee_buffer_bps=config.get("entry_fee_buffer_bps"),
+        record_fill_diagnostics=fill_diagnostics,
     )
     segments = []
     try:
@@ -244,8 +249,12 @@ def _evaluate_capture(
                 options={"capture_index": 0, "segment_index": segment_index}
             )
             maximum_inventory = abs(Decimal(info["inventory"]))
+            action_counts: dict[str, int] = {}
             while True:
                 action, _ = predictor.predict(observation, deterministic=True)
+                parameters = environment.action_parameters(action)
+                mode = parameters.get("side_mode", "both" if parameters["quote"] else "off")
+                action_counts[mode] = action_counts.get(mode, 0) + 1
                 observation, _, terminated, truncated, info = environment.step(action)
                 maximum_inventory = max(
                     maximum_inventory, abs(Decimal(info["inventory"]))
@@ -256,6 +265,7 @@ def _evaluate_capture(
                 {
                     "segment_index": segment_index,
                     "decision_steps": info["episode_steps"],
+                    "action_counts": action_counts,
                     "net_pnl": str(
                         Decimal(info["net_worth"]) - simulation.initial_cash
                     ),
@@ -269,6 +279,16 @@ def _evaluate_capture(
                     "terminal_reason": info["reason"],
                 }
             )
+            if fill_diagnostics:
+                with localcontext(SIMULATION_DECIMAL_CONTEXT):
+                    spread_capture = sum((Decimal(fill["spread_capture"]) for fill in environment.fill_diagnostics), Decimal("0"))
+                    gross = Decimal(info["net_worth"]) - simulation.initial_cash + Decimal(info["fees"])
+                segments[-1]["fill_diagnostics"] = {
+                    "fills": list(environment.fill_diagnostics),
+                    "spread_capture": str(spread_capture),
+                    "inventory_revaluation": str(gross - spread_capture),
+                    "instant_edge_below_fee_fills": sum(Decimal(fill["instant_edge_after_fee"]) < 0 for fill in environment.fill_diagnostics),
+                }
     finally:
         environment.close()
     return {

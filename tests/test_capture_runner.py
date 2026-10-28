@@ -133,6 +133,19 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(first_quotes, second_quotes)
         self.assertGreater(len(set(first_quotes)), 1)
 
+    def test_seeded_random_uses_the_explicit_width_grid(self) -> None:
+        policy = SeededRandomPolicy(
+            Decimal("0.5"), Decimal("1"), seed=7,
+            maximum_half_spread_ticks=100,
+            maximum_absolute_skew_ticks=0,
+            half_spread_tick_choices=(1, 10, 100),
+        )
+        widths = {
+            (quote.ask_price - quote.bid_price) / Decimal("1")
+            for quote in [policy.quote(self.book, Decimal("0")) for _ in range(30)]
+        }
+        self.assertEqual(widths, {Decimal("1"), Decimal("10"), Decimal("100")})
+
     def test_avellaneda_stoikov_inventory_and_horizon_behavior(self) -> None:
         flat = AvellanedaStoikovPolicy(
             tick_size=Decimal("0.01"),

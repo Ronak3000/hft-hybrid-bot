@@ -107,6 +107,7 @@ def evaluate_paired_queue_policies(
             maximum_absolute_skew_ticks=int(
                 config["maximum_absolute_skew_ticks"]
             ),
+            half_spread_tick_choices=config.get("half_spread_tick_choices"),
         ),
         "avellaneda_stoikov": lambda _: AvellanedaStoikovPolicy(
             tick_size=tick_size,
@@ -159,6 +160,7 @@ def evaluate_paired_queue_policies(
             calibration_file.read_bytes()
         ).hexdigest(),
         "baseline_configuration": {
+            "random_half_spread_tick_choices": config.get("half_spread_tick_choices"),
             "fixed_half_spread_ticks": fixed_half_spread_ticks,
             "inventory_max_skew_ticks": str(inventory_max_skew_ticks),
             "random_seed": random_seed,
@@ -200,6 +202,10 @@ def _evaluate_policy_capture(
             config["inventory_penalty_per_second"]
         ),
         decision_interval_ns=int(config.get("decision_interval_ns", 0)),
+        action_schema_version=int(config.get("action_schema_version", 1)),
+        half_spread_tick_choices=config.get("half_spread_tick_choices"),
+        observation_schema_version=int(config.get("observation_schema_version", 1)),
+        entry_fee_buffer_bps=config.get("entry_fee_buffer_bps"),
     )
     segments = []
     try:

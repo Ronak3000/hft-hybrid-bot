@@ -38,6 +38,12 @@ Quotes are rounded outward to the tick grid. Width is at least one tick. The
 simulator rejects marketable orders and suppresses inventory-increasing quotes
 at the configured inventory boundary.
 
+The scalar action space remains the default (`action_schema_version=1`). An
+optional version 2 uses a three-component integer action: quote flag, width
+index, and skew index. It preserves the same quote/fill mechanics and observation
+schema while giving abstention its own categorical decision. See the
+[v2 activity controls](phase13-ppo-v2-controls.md#optional-factorized-actions).
+
 This bounded action space is intentionally easier to audit than continuous
 gamma/spread controls whose economic meaning changes with price scale.
 

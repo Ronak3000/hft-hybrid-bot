@@ -29,6 +29,14 @@ class _LeaveMarketPredictor:
         return 0, None
 
 
+class _FactorizedLeaveMarketPredictor:
+    def predict(self, observation, *, deterministic: bool):
+        del observation
+        if not deterministic:
+            raise AssertionError("evaluation must use deterministic actions")
+        return [0, 0, 0], None
+
+
 @unittest.skipIf(gymnasium is None, "gymnasium is not installed")
 class PPOEvaluationTests(unittest.TestCase):
     def _study_and_artifacts(self, root: Path) -> tuple[Path, tuple[Path, ...]]:
@@ -238,6 +246,34 @@ class PPOEvaluationTests(unittest.TestCase):
                     project_root=root,
                     predictor_loader=lambda _: _LeaveMarketPredictor(),
                 )
+
+    def test_factorized_artifacts_work_in_ppo_and_paired_evaluation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plan_path, artifacts = self._study_and_artifacts(root)
+            for path in artifacts:
+                artifact = json.loads(path.read_text(encoding="utf-8"))
+                artifact["configuration"]["action_schema_version"] = 2
+                artifact["configuration"]["half_spread_tick_choices"] = [2]
+                path.write_text(json.dumps(artifact), encoding="utf-8")
+            arguments = dict(
+                project_root=root,
+                predictor_loader=lambda _: _FactorizedLeaveMarketPredictor(),
+                bootstrap_samples=10,
+            )
+            ppo = evaluate_ppo_artifacts(
+                plan_path, "validation", artifacts, **arguments
+            )
+            paired = evaluate_paired_queue_policies(
+                plan_path, "validation", artifacts,
+                self._calibration(root, plan_path), **arguments
+            )
+
+        self.assertEqual(ppo["configuration"]["action_schema_version"], 2)
+        self.assertEqual(ppo["models"][0]["sessions"][0]["net_pnl"], "0")
+        self.assertEqual(paired["ppo"]["configuration"]["action_schema_version"], 2)
+        self.assertEqual(paired["baseline_configuration"]["random_half_spread_tick_choices"], [2])
+        self.assertEqual(paired["baselines"]["no_quote"]["sessions"][0]["net_pnl"], "0")
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ import importlib.metadata
 import json
 import platform
 import sys
+from contextlib import closing
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -18,7 +19,9 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from engine.market_data import verify_capture
 from engine.research import load_study_plan, validated_split_capture_paths
+from engine.research.l2_features import iter_l2_features
 from engine.simulation import SimulationConfig
+from engine.simulation.quote_grid import quote_grid_economics
 
 
 def main() -> None:
@@ -32,12 +35,20 @@ def main() -> None:
     parser.add_argument("--cancel-latency-ns", type=int, default=0)
     parser.add_argument("--max-abs-inventory", type=Decimal, required=True)
     parser.add_argument("--max-half-spread-ticks", type=int, default=5)
+    parser.add_argument("--half-spread-tick-choices", type=int, nargs="+")
+    parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument("--require-fee-coverage", action="store_true")
     parser.add_argument("--max-absolute-skew-ticks", type=int, default=2)
     parser.add_argument("--reward-scale", type=Decimal, default=Decimal("1"))
     parser.add_argument(
         "--inventory-penalty-per-second", type=Decimal, default=Decimal("0")
     )
     parser.add_argument("--decision-interval-ns", type=int, default=0)
+    parser.add_argument(
+        "--action-schema-version", type=int, choices=(1, 2, 3), default=1
+    )
+    parser.add_argument("--observation-schema-version", type=int, choices=(1, 2), default=1)
+    parser.add_argument("--entry-fee-buffer-bps", type=Decimal)
     parser.add_argument("--total-timesteps", type=int, default=100_000)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--learning-rate", type=float, default=0.0003)
@@ -130,7 +141,35 @@ def main() -> None:
             reward_scale=args.reward_scale,
             inventory_penalty_per_second=args.inventory_penalty_per_second,
             decision_interval_ns=args.decision_interval_ns,
+            action_schema_version=args.action_schema_version,
+            half_spread_tick_choices=args.half_spread_tick_choices,
+            observation_schema_version=args.observation_schema_version,
+            entry_fee_buffer_bps=args.entry_fee_buffer_bps,
         )
+        # Read only a training reference, without advancing the environment's
+        # episode counter or changing the order of training captures.
+        with closing(iter_l2_features(training_paths[0], levels=1)) as features:
+            try:
+                reference = next(features)
+            except StopIteration as exc:
+                raise ValueError("training capture has no usable L2 reference") from exc
+        preflight = quote_grid_economics(
+            reference.mid_price, args.tick_size, config.maker_fee_rate,
+            environment.half_spread_tick_choices,
+        )
+        preflight["reference_capture"] = training_paths[0].name
+        preflight["reference_capture_sha256"] = environment.capture_hashes[0]
+        preflight["reference_received_time_ns"] = reference.received_time_ns
+        preflight["held_out_splits_used"] = []
+        if args.preflight_only:
+            print(json.dumps(preflight, indent=2, sort_keys=True))
+            if args.require_fee_coverage and not preflight["has_fee_covering_valid_width"]:
+                raise ValueError("no valid quote width covers fees at the training reference")
+            return
+        if not preflight["has_fee_covering_valid_width"]:
+            if args.require_fee_coverage:
+                raise ValueError("no valid quote width covers fees at the training reference")
+            print("WARNING: no quote width covers fees at the training reference; see metadata preflight.")
         model = PPO(
             "MlpPolicy",
             environment,
@@ -183,6 +222,7 @@ def main() -> None:
             for path in training_paths
         ],
         "held_out_splits_used": [],
+        "quote_economics_preflight": preflight,
         "seed": args.seed,
         "total_timesteps": args.total_timesteps,
         "configuration": {
@@ -194,12 +234,16 @@ def main() -> None:
             "cancel_latency_ns": config.cancel_latency_ns,
             "max_abs_inventory": str(config.max_abs_inventory),
             "maximum_half_spread_ticks": args.max_half_spread_ticks,
+            "half_spread_tick_choices": args.half_spread_tick_choices,
             "maximum_absolute_skew_ticks": args.max_absolute_skew_ticks,
             "reward_scale": str(args.reward_scale),
             "inventory_penalty_per_second": str(
                 args.inventory_penalty_per_second
             ),
             "decision_interval_ns": args.decision_interval_ns,
+            "action_schema_version": args.action_schema_version,
+            "observation_schema_version": args.observation_schema_version,
+            "entry_fee_buffer_bps": None if args.entry_fee_buffer_bps is None else str(args.entry_fee_buffer_bps),
             "learning_rate": args.learning_rate,
             "entropy_coefficient": args.entropy_coefficient,
             "gamma": args.gamma,

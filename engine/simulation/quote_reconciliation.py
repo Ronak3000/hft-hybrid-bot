@@ -18,6 +18,8 @@ def reconcile_quote_target(
 
     Existing orders first enter the configured cancellation path. A replacement
     cannot appear until that order is terminal, so cancel latency remains real.
+    Reducing the requested size below remaining quantity also requires cancel
+    and replacement; an existing order is never resized retroactively.
     """
     desired = {Side.BUY: target.bid_price, Side.SELL: target.ask_price}
     if simulator.inventory >= simulator.config.max_abs_inventory:
@@ -29,7 +31,7 @@ def reconcile_quote_target(
         order = simulator.open_order(side)
         price = desired[side]
         if order is not None:
-            if price is None or order.price != price:
+            if price is None or order.price != price or order.remaining_quantity > target.quantity:
                 simulator.request_cancel(order.order_id, received_time_ns)
             continue
         if price is not None:

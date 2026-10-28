@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import importlib
 import sys
 import time
 from dataclasses import dataclass
@@ -180,6 +181,17 @@ async def _connect_and_capture(
 async def capture(
     symbol: str, output: Path, events: int, limit: int, max_reconnects: int
 ) -> None:
+    # A missing optional dependency must not consume an immutable capture name
+    # by creating a metadata-only file before the first connection attempt.
+    for dependency in ("requests", "websockets"):
+        try:
+            importlib.import_module(dependency)
+        except ImportError as exc:
+            raise RuntimeError(
+                f"Capture dependency {dependency!r} is unavailable in {sys.executable}. "
+                'With this environment activated, run: python -m pip install '
+                '"requests>=2.31.0" "websockets>=12.0"'
+            ) from exc
     metadata = {
         "captured_at_utc": datetime.now(timezone.utc).isoformat(),
         "depth_limit": limit,

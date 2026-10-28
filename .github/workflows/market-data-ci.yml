@@ -27,6 +27,11 @@ on:
       - "tests/test_research_dataset.py"
       - "tests/test_queue_replay_env.py"
       - "tests/test_ppo_evaluation.py"
+      - "tests/test_quote_grid.py"
+      - "tests/test_replay_demo.py"
+      - "scripts/export_replay_demo.py"
+      - "scripts/compare_training_ppo.py"
+      - "scripts/compare_fee_guard.py"
       - ".github/workflows/market-data-ci.yml"
   pull_request:
     paths:
@@ -54,6 +59,11 @@ on:
       - "tests/test_research_dataset.py"
       - "tests/test_queue_replay_env.py"
       - "tests/test_ppo_evaluation.py"
+      - "tests/test_quote_grid.py"
+      - "tests/test_replay_demo.py"
+      - "scripts/export_replay_demo.py"
+      - "scripts/compare_training_ppo.py"
+      - "scripts/compare_fee_guard.py"
       - ".github/workflows/market-data-ci.yml"
   workflow_dispatch:
 

@@ -49,15 +49,18 @@ def main() -> None:
         parser.error(f"planned session already exists: {output}")
 
     configuration = plan["capture_configuration"]
-    asyncio.run(
-        capture(
-            configuration["symbol"],
-            output,
-            configuration["events_per_session"],
-            configuration["depth_limit"],
-            configuration["max_reconnects"],
+    try:
+        asyncio.run(
+            capture(
+                configuration["symbol"],
+                output,
+                configuration["events_per_session"],
+                configuration["depth_limit"],
+                configuration["max_reconnects"],
+            )
         )
-    )
+    except (RuntimeError, OSError, ValueError) as exc:
+        parser.error(f"capture failed: {exc}")
     refreshed = audit_study(args.plan, project_root=PROJECT_ROOT)
     result = next(
         item for item in refreshed["sessions"] if item["session_id"] == args.session_id

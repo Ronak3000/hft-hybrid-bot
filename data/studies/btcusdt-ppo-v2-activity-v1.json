@@ -1,0 +1,182 @@
+{
+  "capture_configuration": {
+    "depth_limit": 1000,
+    "events_per_session": 10000,
+    "max_reconnects": 8,
+    "symbol": "BTCUSDT",
+    "venue": "binance_spot"
+  },
+  "capture_directory": "data/captures/btcusdt-ppo-v2-activity-v1",
+  "created_at_utc": "2026-10-24T08:02:30.041400+00:00",
+  "quality_thresholds": {
+    "max_depth_sequence_gaps": 0,
+    "max_disconnects": 2,
+    "max_trade_id_gaps": 0,
+    "min_accepted_trades": 1000,
+    "min_applied_depth_deltas": 10000,
+    "require_final_synchronized_book": true,
+    "require_nondecreasing_receive_timestamps": true,
+    "require_zero_duplicate_trades": true,
+    "require_zero_out_of_order_trades": true
+  },
+  "sessions": [
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-train-001.jsonl",
+      "ordinal": 1,
+      "session_id": "train-001",
+      "split": "train"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-train-002.jsonl",
+      "ordinal": 2,
+      "session_id": "train-002",
+      "split": "train"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-train-003.jsonl",
+      "ordinal": 3,
+      "session_id": "train-003",
+      "split": "train"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-train-004.jsonl",
+      "ordinal": 4,
+      "session_id": "train-004",
+      "split": "train"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-train-005.jsonl",
+      "ordinal": 5,
+      "session_id": "train-005",
+      "split": "train"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-train-006.jsonl",
+      "ordinal": 6,
+      "session_id": "train-006",
+      "split": "train"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-train-007.jsonl",
+      "ordinal": 7,
+      "session_id": "train-007",
+      "split": "train"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-train-008.jsonl",
+      "ordinal": 8,
+      "session_id": "train-008",
+      "split": "train"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-train-009.jsonl",
+      "ordinal": 9,
+      "session_id": "train-009",
+      "split": "train"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-train-010.jsonl",
+      "ordinal": 10,
+      "session_id": "train-010",
+      "split": "train"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-validation-001.jsonl",
+      "ordinal": 11,
+      "session_id": "validation-001",
+      "split": "validation"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-validation-002.jsonl",
+      "ordinal": 12,
+      "session_id": "validation-002",
+      "split": "validation"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-validation-003.jsonl",
+      "ordinal": 13,
+      "session_id": "validation-003",
+      "split": "validation"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-validation-004.jsonl",
+      "ordinal": 14,
+      "session_id": "validation-004",
+      "split": "validation"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-validation-005.jsonl",
+      "ordinal": 15,
+      "session_id": "validation-005",
+      "split": "validation"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-test-001.jsonl",
+      "ordinal": 16,
+      "session_id": "test-001",
+      "split": "test"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-test-002.jsonl",
+      "ordinal": 17,
+      "session_id": "test-002",
+      "split": "test"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-test-003.jsonl",
+      "ordinal": 18,
+      "session_id": "test-003",
+      "split": "test"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-test-004.jsonl",
+      "ordinal": 19,
+      "session_id": "test-004",
+      "split": "test"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-test-005.jsonl",
+      "ordinal": 20,
+      "session_id": "test-005",
+      "split": "test"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-test-006.jsonl",
+      "ordinal": 21,
+      "session_id": "test-006",
+      "split": "test"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-test-007.jsonl",
+      "ordinal": 22,
+      "session_id": "test-007",
+      "split": "test"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-test-008.jsonl",
+      "ordinal": 23,
+      "session_id": "test-008",
+      "split": "test"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-test-009.jsonl",
+      "ordinal": 24,
+      "session_id": "test-009",
+      "split": "test"
+    },
+    {
+      "capture_file": "btcusdt-ppo-v2-activity-v1-test-010.jsonl",
+      "ordinal": 25,
+      "session_id": "test-010",
+      "split": "test"
+    }
+  ],
+  "split_counts": {
+    "test": 10,
+    "train": 10,
+    "validation": 5
+  },
+  "split_policy": "chronological_non_overlapping_train_then_validation_then_test",
+  "study_name": "btcusdt-ppo-v2-activity-v1",
+  "study_plan_schema_version": 1
+}

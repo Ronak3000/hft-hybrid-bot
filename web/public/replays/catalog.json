@@ -1,0 +1,238 @@
+{
+  "generated_at_utc": "2026-10-28T15:56:01.218862+00:00",
+  "generator": "ApexHFT training replay demo v1",
+  "held_out_splits_used": [],
+  "model": {
+    "action_schema_version": 2,
+    "claim_status": "Single-seed training illustration; not held-out evaluation.",
+    "half_spread_tick_choices": [
+      1,
+      100,
+      1000,
+      8000,
+      10000
+    ],
+    "metadata_file": "btcusdt-v2-demo-seed-7-16384.json",
+    "metadata_sha256": "446c803cd5ca29def2b66e5c26be866e4b061bee410da93b57ba5f8f80477b99",
+    "model_file": "btcusdt-v2-demo-seed-7-16384.zip",
+    "model_sha256": "f749f4ae61a6c7c4fb78a739873ae9cc07ddc5747ce7d87a03653e8aaf8019f9",
+    "seed": 7,
+    "total_timesteps": 16384,
+    "training_capture_count": 10
+  },
+  "schema_version": 1,
+  "selection_rule": "first and last training capture by planned ordinal, including every snapshot segment",
+  "sessions": [
+    {
+      "capture_sha256": "f1bee230fc3eace0727f71a3d3abb7a2a42a1c206a4a57dffec582737c1f1251",
+      "captured_at_utc": "2026-10-25T08:47:12.863751+00:00",
+      "id": "train-001-s0",
+      "label": "train-001",
+      "runs": [
+        {
+          "byte_count": 621986,
+          "file": "train-001-s0-ppo-7890f778da8f06f8.json",
+          "frames": 961,
+          "label": "PPO v2 \u00b7 seed 7",
+          "policy": "ppo",
+          "sha256": "7890f778da8f06f824a6fa644d006cc263b0464ec5df141fc5dee7cbee431214",
+          "summary": {
+            "cash": "1000000",
+            "decision_steps": 960,
+            "duration_ms": 1016605.9038,
+            "fees": "0",
+            "fill_count": 0,
+            "inventory": "0",
+            "pnl": "0E-8",
+            "terminal_reason": "end_of_capture",
+            "turnover": "0"
+          }
+        },
+        {
+          "byte_count": 804562,
+          "file": "train-001-s0-inventory_skew-5ef7d9da1dd3e683.json",
+          "frames": 961,
+          "label": "Inventory skew",
+          "policy": "inventory_skew",
+          "sha256": "5ef7d9da1dd3e6839283b63b2e507d383acecc244e18eb4391c093fd39854aba",
+          "summary": {
+            "cash": "999903.5364638700000",
+            "decision_steps": 960,
+            "duration_ms": 1016605.9038,
+            "fees": "14.2348061300000",
+            "fill_count": 178,
+            "inventory": "0.00100000",
+            "pnl": "-16.0562411300000000",
+            "terminal_reason": "end_of_capture",
+            "turnover": "14234.8061300000"
+          }
+        },
+        {
+          "byte_count": 806005,
+          "file": "train-001-s0-fixed_spread-7561da0752d96626.json",
+          "frames": 961,
+          "label": "Fixed spread",
+          "policy": "fixed_spread",
+          "sha256": "7561da0752d96626c3574d40f14348e84fce5da0810df09812ebbbd6469830dc",
+          "summary": {
+            "cash": "999903.5372438900000",
+            "decision_steps": 960,
+            "duration_ms": 1016605.9038,
+            "fees": "14.2348061100000",
+            "fill_count": 183,
+            "inventory": "0.00100000",
+            "pnl": "-16.0554611100000000",
+            "terminal_reason": "end_of_capture",
+            "turnover": "14234.8061100000"
+          }
+        },
+        {
+          "byte_count": 567736,
+          "file": "train-001-s0-no_quote-d7a07b601e763081.json",
+          "frames": 961,
+          "label": "No quote",
+          "policy": "no_quote",
+          "sha256": "d7a07b601e763081aaa5ad184c167987d058a189c50e9f1185c81e2f53fe742b",
+          "summary": {
+            "cash": "1000000",
+            "decision_steps": 960,
+            "duration_ms": 1016605.9038,
+            "fees": "0",
+            "fill_count": 0,
+            "inventory": "0",
+            "pnl": "0E-8",
+            "terminal_reason": "end_of_capture",
+            "turnover": "0"
+          }
+        },
+        {
+          "byte_count": 747864,
+          "file": "train-001-s0-widest_fixed-cb4cdcf911321a4c.json",
+          "frames": 961,
+          "label": "Fixed \u00b7 widest grid",
+          "policy": "widest_fixed",
+          "sha256": "cb4cdcf911321a4c862c846b1f1adac4365a18a935a4bb54c4b31bca6f9406aa",
+          "summary": {
+            "cash": "1000000",
+            "decision_steps": 960,
+            "duration_ms": 1016605.9038,
+            "fees": "0",
+            "fill_count": 0,
+            "inventory": "0",
+            "pnl": "0E-8",
+            "terminal_reason": "end_of_capture",
+            "turnover": "0"
+          }
+        }
+      ],
+      "split": "train"
+    },
+    {
+      "capture_sha256": "299ca7bc6ecf7f08d545a7a902f964400596959ee27630b82d60dd3a64ce0155",
+      "captured_at_utc": "2026-10-28T14:49:21.864471+00:00",
+      "id": "train-010-s0",
+      "label": "train-010",
+      "runs": [
+        {
+          "byte_count": 616657,
+          "file": "train-010-s0-ppo-e40d99eabffa36eb.json",
+          "frames": 948,
+          "label": "PPO v2 \u00b7 seed 7",
+          "policy": "ppo",
+          "sha256": "e40d99eabffa36eb67bc0bb173d4ae7588000faab4827ac81165a1d376daf19a",
+          "summary": {
+            "cash": "1000000",
+            "decision_steps": 947,
+            "duration_ms": 1000304.7772,
+            "fees": "0",
+            "fill_count": 0,
+            "inventory": "0",
+            "pnl": "0E-8",
+            "terminal_reason": "end_of_capture",
+            "turnover": "0"
+          }
+        },
+        {
+          "byte_count": 751194,
+          "file": "train-010-s0-inventory_skew-0e4b4510a77c84d4.json",
+          "frames": 948,
+          "label": "Inventory skew",
+          "policy": "inventory_skew",
+          "sha256": "0e4b4510a77c84d46f3da5e42ed2a71338dd875aa18ec8fc8acf4763e326ca6e",
+          "summary": {
+            "cash": "1000305.9210224900000",
+            "decision_steps": 947,
+            "duration_ms": 1000304.7772,
+            "fees": "12.5744275100000",
+            "fill_count": 157,
+            "inventory": "-0.00400000",
+            "pnl": "-16.7301575100000000",
+            "terminal_reason": "end_of_capture",
+            "turnover": "12574.4275100000"
+          }
+        },
+        {
+          "byte_count": 747983,
+          "file": "train-010-s0-fixed_spread-e5e4b7f4effef8a0.json",
+          "frames": 948,
+          "label": "Fixed spread",
+          "policy": "fixed_spread",
+          "sha256": "e5e4b7f4effef8a0cb2d22ad5705fd6953ea5515cd2c99197f6d63263be71a15",
+          "summary": {
+            "cash": "1000225.19573677",
+            "decision_steps": 947,
+            "duration_ms": 1000304.7772,
+            "fees": "12.65507323",
+            "fill_count": 157,
+            "inventory": "-0.003",
+            "pnl": "-16.79264823000",
+            "terminal_reason": "end_of_capture",
+            "turnover": "12655.07323"
+          }
+        },
+        {
+          "byte_count": 560124,
+          "file": "train-010-s0-no_quote-2056714254edbb03.json",
+          "frames": 948,
+          "label": "No quote",
+          "policy": "no_quote",
+          "sha256": "2056714254edbb03e5e10e51b76e05001872bfbed6b1f47837919950e2c81290",
+          "summary": {
+            "cash": "1000000",
+            "decision_steps": 947,
+            "duration_ms": 1000304.7772,
+            "fees": "0",
+            "fill_count": 0,
+            "inventory": "0",
+            "pnl": "0E-8",
+            "terminal_reason": "end_of_capture",
+            "turnover": "0"
+          }
+        },
+        {
+          "byte_count": 740627,
+          "file": "train-010-s0-widest_fixed-d542ea6bf6311f89.json",
+          "frames": 948,
+          "label": "Fixed \u00b7 widest grid",
+          "policy": "widest_fixed",
+          "sha256": "d542ea6bf6311f8914ee681325e607b46ab3f0707277c7ab6a018d39ef780512",
+          "summary": {
+            "cash": "1000000",
+            "decision_steps": 947,
+            "duration_ms": 1000304.7772,
+            "fees": "0",
+            "fill_count": 0,
+            "inventory": "0",
+            "pnl": "0E-8",
+            "terminal_reason": "end_of_capture",
+            "turnover": "0"
+          }
+        }
+      ],
+      "split": "train"
+    }
+  ],
+  "study_name": "btcusdt-ppo-v2-activity-v1",
+  "study_plan_sha256": "e8dc72b1493eca05a0295389274c1084326fd43e2195c74ad2a922b996e3db96",
+  "training_sessions_validated": 10
+}
