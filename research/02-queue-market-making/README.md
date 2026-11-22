@@ -7,6 +7,8 @@ the same Avellaneda–Stoikov policy without the signal?
 [Paired replay command](../../scripts/evaluate_alpha_quotes.py) ·
 [Quote adjustment code](../../engine/research/alpha_quotes.py)
 
+[Read the five-session pilot results](../pilot-2026-11-22.md#project-2--paired-quotes).
+
 The baseline sets a reservation price and spread. The experimental policy
 widens only the side exposed to the forecast direction, without changing the
 order size. It uses the logistic model from Project 1, not the optional MLP.

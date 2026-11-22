@@ -11,6 +11,8 @@ up). Inputs come only from the current feature row. Labels never cross
 recordings or snapshot segments; the last horizon-sized tail of every segment
 has no target. Whole sessions are assigned to chronological splits before
 evaluation. Both scaling and logistic regression fit only the training split.
+Buffered pre-snapshot updates warm up the book but do not produce feature
+rows. Regenerate older feature CSVs that lack this availability filter.
 
 ## Run the first study
 

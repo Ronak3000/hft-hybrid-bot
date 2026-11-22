@@ -30,6 +30,8 @@ class Session:
 
 def load_session(path: Path) -> Session:
     manifest = dict(verify_feature_csv(path))
+    if manifest.get("snapshot_availability_filter") is not True:
+        raise ValueError(f"{path}: rebuild features with snapshot availability filtering")
     with path.open(encoding="utf-8", newline="") as source:
         rows = list(csv.DictReader(source))
     if not rows:

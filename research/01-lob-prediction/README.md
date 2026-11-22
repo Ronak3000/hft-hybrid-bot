@@ -7,6 +7,8 @@ the mid-price 10, 50, or 100 feature updates ahead?
 [Prediction evaluator](../../scripts/evaluate_lob_alpha.py) ·
 [Feature and model code](../../engine/research/lob_alpha.py)
 
+[Read the five-session pilot results](../pilot-2026-11-22.md#project-1--prediction).
+
 Compare the training-majority class, microprice sign, and logistic regression.
 Add `--lookback 8` to include a small two-hidden-layer MLP that reads eight
 consecutive causal feature rows. All models in that report score the same

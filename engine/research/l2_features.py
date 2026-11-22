@@ -199,6 +199,7 @@ def _iter_l2_features_verified(
     book: L2Book | None = None
     previous: _TopOfBook | None = None
     segment_id = -1
+    snapshot_ready_ns = 0
 
     with Path(path).open("r", encoding="utf-8") as source:
         for line_number, line in enumerate(source, start=1):
@@ -218,6 +219,7 @@ def _iter_l2_features_verified(
                 if book is None:
                     raise SchemaError("snapshot appears before metadata")
                 book.load_snapshot(parse_binance_snapshot(payload, book.symbol, received))
+                snapshot_ready_ns = received
                 segment_id += 1
                 previous = _top(book)
             elif kind == "delta":
@@ -244,7 +246,10 @@ def _iter_l2_features_verified(
                 )
                 if calculated is not None:
                     row, previous = calculated
-                    yield row
+                    # Warm up the book and OFI without exposing feature rows
+                    # timestamped before the required snapshot arrived.
+                    if received >= snapshot_ready_ns:
+                        yield row
             elif kind not in {"trade", "gap", "trade_gap", "disconnect"}:
                 raise SchemaError(f"unsupported record kind on line {line_number}: {kind}")
 
@@ -280,6 +285,7 @@ def extract_feature_csv(
         "feature_file": output.name,
         "feature_schema_version": FEATURE_SCHEMA_VERSION,
         "levels": levels,
+        "snapshot_availability_filter": True,
         "row_count": row_count,
         "sha256": hashlib.sha256(raw).hexdigest(),
         "source_capture": Path(capture_path).name,
