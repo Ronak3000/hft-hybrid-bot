@@ -2,7 +2,7 @@ from decimal import Decimal
 import unittest
 
 from engine.market_data import L2Book, parse_binance_snapshot
-from engine.research.alpha_quotes import AlphaWideningPolicy
+from engine.research.alpha_quotes import AlphaWideningPolicy, SymmetricWideningPolicy
 from engine.simulation.policies import AvellanedaStoikovPolicy
 
 
@@ -30,3 +30,9 @@ class AlphaQuotesTests(unittest.TestCase):
             self.assertEqual(actual.ask_price - expected.ask_price, d(ask_change))
             self.assertEqual(actual.quantity, expected.quantity)
         self.assertEqual(quotes.matched_updates, 2)
+        symmetric = SymmetricWideningPolicy(model, 2)
+        expected = model.quote(book, d("0"), 7)
+        actual = symmetric.quote(book, d("0"), 7)
+        self.assertEqual(actual.bid_price, expected.bid_price - d("0.02"))
+        self.assertEqual(actual.ask_price, expected.ask_price + d("0.02"))
+        self.assertEqual(actual.quantity, expected.quantity)

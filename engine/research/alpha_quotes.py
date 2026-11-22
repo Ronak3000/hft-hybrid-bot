@@ -18,21 +18,45 @@ from .l2_features import verify_feature_csv
 from .lob_alpha import INPUTS, Session, fit_direction_model, load_session, validate_splits
 
 
-class AlphaWideningPolicy:
+class SymmetricWideningPolicy:
+    """Control: quote wider on both sides without reading any predictions."""
+
+    def __init__(self, baseline: AvellanedaStoikovPolicy, widen_ticks: int) -> None:
+        if type(widen_ticks) is not int or widen_ticks < 0:
+            raise ValueError("widen_ticks must be a nonnegative integer")
+        self.baseline = baseline
+        with localcontext(SIMULATION_DECIMAL_CONTEXT):
+            self._width = baseline.tick_size * widen_ticks
+
+    def _widen(self, base: QuoteTarget, *, widen_bid: bool, widen_ask: bool) -> QuoteTarget:
+        if not self._width:
+            return base
+        bid, ask = base.bid_price, base.ask_price
+        with localcontext(SIMULATION_DECIMAL_CONTEXT):
+            if widen_bid and bid is not None:
+                bid -= self._width
+                if bid <= 0:
+                    bid = None
+            if widen_ask and ask is not None:
+                ask += self._width
+        return QuoteTarget(bid, ask, base.quantity)
+
+    def quote(self, book: L2Book, inventory: Decimal, received_time_ns: int) -> QuoteTarget:
+        return self._widen(self.baseline.quote(book, inventory, received_time_ns),
+                           widen_bid=True, widen_ask=True)
+
+
+class AlphaWideningPolicy(SymmetricWideningPolicy):
     """Consume signals only when their exact depth update is applied in replay."""
 
     def __init__(
         self, baseline: AvellanedaStoikovPolicy,
         signals: Mapping[tuple[int, int], int], widen_ticks: int,
     ) -> None:
-        if type(widen_ticks) is not int or widen_ticks < 0:
-            raise ValueError("widen_ticks must be a nonnegative integer")
+        super().__init__(baseline, widen_ticks)
         if any(signal not in (-1, 0, 1) for signal in signals.values()):
             raise ValueError("signals must be down (-1), flat (0), or up (1)")
-        self.baseline = baseline
         self.signals = dict(signals)
-        with localcontext(SIMULATION_DECIMAL_CONTEXT):
-            self._width = baseline.tick_size * widen_ticks
         self._direction = 0
         self.matched_updates = 0
         self.directions: Counter[int] = Counter()
@@ -45,18 +69,8 @@ class AlphaWideningPolicy:
             self.directions[self._direction] += 1
 
     def quote(self, book: L2Book, inventory: Decimal, received_time_ns: int) -> QuoteTarget:
-        base = self.baseline.quote(book, inventory, received_time_ns)
-        if not self._direction or not self._width:
-            return base
-        bid, ask = base.bid_price, base.ask_price
-        with localcontext(SIMULATION_DECIMAL_CONTEXT):
-            if self._direction > 0 and ask is not None:
-                ask += self._width
-            elif self._direction < 0 and bid is not None:
-                bid -= self._width
-                if bid <= 0:
-                    bid = None
-        return QuoteTarget(bid, ask, base.quantity)
+        return self._widen(self.baseline.quote(book, inventory, received_time_ns),
+                           widen_bid=self._direction < 0, widen_ask=self._direction > 0)
 
 
 def evaluate_alpha_quotes(
@@ -80,12 +94,16 @@ def evaluate_alpha_quotes(
         replace(policy), dict(zip(keys, model.predict(features).tolist(), strict=True)), widen_ticks
     )
     base_run = CapturePolicyRunner(replace(policy), config, markout_horizons_ns).run(test_capture)
+    symmetric_run = CapturePolicyRunner(
+        SymmetricWideningPolicy(replace(policy), widen_ticks), config, markout_horizons_ns
+    ).run(test_capture)
     alpha_run = CapturePolicyRunner(
         adjusted, config, markout_horizons_ns, on_depth=adjusted.on_depth
     ).run(test_capture)
     if base_run.metrics.snapshots != 1 or adjusted.matched_updates != len(keys):
         raise ValueError("paired replay requires one snapshot and every feature update matched")
-    if base_run.final_book_digest != alpha_run.final_book_digest:
+    if len({base_run.final_book_digest, symmetric_run.final_book_digest,
+            alpha_run.final_book_digest}) != 1:
         raise RuntimeError("paired replays ended on different market states")
 
     def summarize(run):
@@ -120,5 +138,6 @@ def evaluate_alpha_quotes(
             for direction, name in ((-1, "down"), (0, "flat"), (1, "up"))
         },
         "avellaneda_stoikov": summarize(base_run),
+        "symmetric_widened": summarize(symmetric_run),
         "alpha_widened": summarize(alpha_run),
     }

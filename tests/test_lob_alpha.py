@@ -103,3 +103,4 @@ class LobAlphaTests(unittest.TestCase):
             )
         self.assertEqual(result["matched_updates"], 4)
         self.assertEqual(result["avellaneda_stoikov"], result["alpha_widened"])
+        self.assertEqual(result["avellaneda_stoikov"], result["symmetric_widened"])
