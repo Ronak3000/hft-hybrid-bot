@@ -4,6 +4,14 @@ ApexHFT is an experimental market-microstructure research project. It combines a
 
 The project is under active validation. It is not an exchange, brokerage system, production trading platform, or demonstrated profitable strategy.
 
+## Research projects
+
+1. [Limit order book prediction](research/01-lob-prediction/README.md) — predict short-horizon mid-price moves and compare with simple controls.
+2. [Queue-aware market making](research/02-queue-market-making/README.md) — compare plain Avellaneda–Stoikov with signal-adjusted quotes on identical L2 replay.
+
+Both use the shared Binance L2 capture. The C++ matching engine is a separate
+systems component; these studies do not use the candle PPO path.
+
 ## Current capabilities
 
 - A single-threaded, in-process C++ limit-order-book prototype with price-time matching.
