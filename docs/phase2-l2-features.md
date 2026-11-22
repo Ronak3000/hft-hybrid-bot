@@ -17,7 +17,9 @@ included in the model input list.
 
 ## Features
 
-Each applied, sequence-valid delta produces one row. A `segment_id` identifies
+Each applied, sequence-valid delta with a valid top of book produces a row
+after its initial snapshot is available. Buffered pre-snapshot deltas update
+the book and OFI state without emitting rows. A `segment_id` identifies
 each uninterrupted snapshot-and-delta sequence so later labels cannot bridge a
 gap or resynchronization:
 

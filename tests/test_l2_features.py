@@ -58,6 +58,17 @@ def _capture(path: Path) -> None:
 
 
 class CausalFeatureTests(unittest.TestCase):
+    def test_pre_snapshot_buffer_warms_book_without_exposing_a_feature(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "buffer.jsonl"
+            with CaptureWriter(path, {"venue": "binance_spot", "symbol": "BTCUSDT"}) as writer:
+                writer.write("snapshot", _snapshot(), 10)
+                writer.write("delta", _delta(101, 101, bids=[["100", "12"]]), 9)
+                writer.write("delta", _delta(102, 102, bids=[["100", "15"]]), 11)
+            rows = list(iter_l2_features(path))
+        self.assertEqual([row.received_time_ns for row in rows], [11])
+        self.assertEqual(rows[0].ofi_l1, Decimal("3"))
+
     def test_hand_calculated_features_and_stale_filter(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             capture = Path(directory) / "capture.jsonl"

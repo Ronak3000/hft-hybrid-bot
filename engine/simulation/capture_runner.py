@@ -7,7 +7,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from decimal import Decimal, localcontext
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from engine.market_data import (
     ApplyStatus,
@@ -80,6 +80,8 @@ class CapturePolicyRunner:
         policy: QuotePolicy,
         config: SimulationConfig | None = None,
         markout_horizons_ns: tuple[int, ...] = (),
+        *,
+        on_depth: Callable[[tuple[int, int] | None], None] | None = None,
     ) -> None:
         if any(
             isinstance(horizon, bool)
@@ -93,6 +95,7 @@ class CapturePolicyRunner:
         self.policy = policy
         self.simulator = QueueAwareSimulator(config)
         self.markout_horizons_ns = tuple(sorted(markout_horizons_ns))
+        self._on_depth = on_depth
         self._attributions: list[FillAttribution] = []
         self._pending_markouts: dict[int, deque[FillAttribution]] = {
             horizon: deque() for horizon in self.markout_horizons_ns
@@ -131,6 +134,8 @@ class CapturePolicyRunner:
                     raise SchemaError(f"{kind} appears before metadata")
 
                 if kind == "snapshot":
+                    if self._on_depth is not None:
+                        self._on_depth(None)
                     boundary_time = max(received, self.simulator.current_time_ns)
                     self.simulator.invalidate_open_orders(boundary_time)
                     book.load_snapshot(
@@ -161,11 +166,15 @@ class CapturePolicyRunner:
                     if status is ApplyStatus.APPLIED:
                         applied += 1
                         if trading_enabled:
+                            if self._on_depth is not None:
+                                self._on_depth((received, delta.final_update_id))
                             self._observe_markouts(received, book)
                             self._reconcile_quotes(received, book)
                     elif status is ApplyStatus.STALE:
                         stale += 1
                     elif status is ApplyStatus.GAP:
+                        if self._on_depth is not None:
+                            self._on_depth(None)
                         trading_enabled = False
                         decision_start_ns = None
                         self.simulator.invalidate_open_orders(
@@ -185,6 +194,8 @@ class CapturePolicyRunner:
                     self._observe_markouts(received, book)
                     self._reconcile_quotes(received, book)
                 elif kind in {"gap", "trade_gap", "disconnect"}:
+                    if self._on_depth is not None:
+                        self._on_depth(None)
                     if trading_enabled:
                         self._require_nondecreasing(received)
                         self.simulator.invalidate_open_orders(received)
