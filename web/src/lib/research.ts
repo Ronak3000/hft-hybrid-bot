@@ -18,16 +18,6 @@ export const entryGuardStudy = {
   guardedFills: 0,
   guardedNetPnl: '0',
 } as const;
-// Frozen collection-plan summary, not a live capture-progress counter.
-export const nextStudy = {
-  name: 'btcusdt-ppo-v2-activity-v1',
-  trainingSessions: 10,
-  validationSessions: 5,
-  testSessions: 10,
-  deltasPerSession: 10_000,
-  planPath: 'data/studies/btcusdt-ppo-v2-activity-v1.json',
-  firstSession: 'train-001',
-} as const;
 export const pilot = {
   date: '2026-09-11',
   sessions: 5,

@@ -209,16 +209,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .assumption-list dt { color: #a8b59d; }
 .assumption-list dd { color: #dee7d4; text-align: right; }
 .assumption-footnote { margin-top: 21px; color: #a6b49a; font-size: 10px; line-height: 1.8; }
-.capability-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; margin-top: 26px; }
-.capability-grid article { display: flex; gap: 9px; }
-.capability-grid svg { color: #b5ed85; flex-shrink: 0; margin-top: 2px; }
-.capability-grid h3 { font-size: 11px; font-weight: 500; }
-.capability-grid p { color: #a6b49a; font-size: 10px; line-height: 1.8; margin-top: 8px; }
-.next-experiment { margin-top: 26px; padding-top: 20px; border-top: 1px solid #35402f; display: flex; align-items: flex-start; gap: 12px; }
-.next-experiment > svg { color: #b5ed85; flex-shrink: 0; margin-top: 2px; }
-.next-experiment strong { font-size: 11px; font-weight: 500; }
-.next-experiment p { color: #a6b49a; font-size: 10px; line-height: 1.8; margin-top: 6px; }
-.next-experiment > a { margin-left: auto; }
 .provenance-panel { padding: 22px 0 15px; }
 .provenance-panel > div { display: flex; align-items: center; gap: 9px; color: #b3c2a4; }
 .provenance-panel strong { font-size: 11px; font-weight: 500; }
@@ -228,19 +218,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .provenance-panel code { display: block; overflow-wrap: anywhere; font-size: 9px; line-height: 1.8; color: #d1dfc3; padding: 10px; background: #1b2418; border-radius: 4px; }
 .research-footer { border-top: 1px solid #303c29; margin-top: 12px; padding-top: 18px; display: flex; justify-content: space-between; gap: 15px; color: #a1b08f; font-size: 10px; }
 .research-footer a { display: inline-flex; align-items: center; gap: 7px; color: #c2dfa6; }
-.collection-panel { margin-top: 22px; }
-.collection-targets { display: grid; grid-template-columns: repeat(3, 1fr); border-block: 1px solid #35402f; }
-.collection-targets > div { display: flex; align-items: center; gap: 12px; padding: 18px 0; }
-.collection-targets strong { font: 26px var(--font-geist-mono), monospace; color: #c7efab; }
-.collection-targets span { font-size: 11px; color: #b3c2a4; }
-.collection-instructions { margin-top: 18px; color: #c4d4b3; font-size: 11px; }
-.collection-instructions summary { cursor: pointer; padding: 7px 0; }
-.collection-instructions > p { color: #a6b49a; font-size: 11px; line-height: 1.8; margin-block: 10px; }
-.copy-command { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; background: #11170e; border: 1px solid #35402f; border-radius: 5px; padding: 12px; }
-.copy-command code { overflow-wrap: anywhere; font: 11px/1.8 var(--font-geist-mono), monospace; color: #d1dfc3; }
-.copy-command-button { display: flex; align-items: center; align-self: start; gap: 6px; padding: 7px 10px; background: #25301f; border-radius: 4px; color: #c7efab; font-size: 11px; cursor: pointer; }
-.copy-command-status { grid-column: 1 / -1; font-size: 10px; color: #b5ed85; }
-.copy-command-status:empty { display: none; }
 
 @media (min-width: 1500px) {
   .workspace-content { padding-top: 52px; }
@@ -252,7 +229,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   .workspace-sidebar { width: 190px; }
   .workspace-content { padding-inline: 24px; }
   .research-main-grid { grid-template-columns: minmax(0, 1fr); }
-  .capability-grid { grid-template-columns: repeat(2, 1fr); }
   .research-metric { padding: 17px 14px; }
   .research-title { flex-direction: column; gap: 0; }
   .snapshot-badge { margin-top: 10px; }
@@ -302,13 +278,10 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   .policy-value { font-size: 10px; }
   .loss-scale { margin-left: 112px; margin-right: 49px; }
   .research-title h1 { font-size: 28px; }
-  .capability-grid { grid-template-columns: 1fr; gap: 20px; }
   .research-footer { flex-direction: column; }
   .neutral-tag { font-size: 8px; padding: 5px 7px; }
   .eyebrow { font-size: 8px; }
   .hero-copy .eyebrow { font-size: 9px; }
-  .collection-targets > div { flex-direction: column; align-items: flex-start; gap: 7px; }
-  .collection-targets span { font-size: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -1,4 +1,4 @@
-"""Replay the same L2 session with plain and signal-widened Avellaneda–Stoikov."""
+"""Compare plain, symmetrically widened, and signal-widened quotes on identical L2."""
 
 from __future__ import annotations
 
@@ -64,14 +64,20 @@ def main() -> None:
             result["net_pnl_difference"] = (
                 result["alpha_widened"]["net_pnl"] - result["avellaneda_stoikov"]["net_pnl"]
             )
+            result["net_pnl_difference_vs_symmetric"] = (
+                result["alpha_widened"]["net_pnl"] - result["symmetric_widened"]["net_pnl"]
+            )
             sessions.append(result)
         report = {
-            "schema_version": 2,
+            "schema_version": 3,
             "policy_parameters": policy_terms,
             "simulation_parameters": asdict(config),
             "sessions": sessions,
             "mean_session_net_pnl_difference": (
                 sum(item["net_pnl_difference"] for item in sessions) / len(sessions)
+            ),
+            "mean_session_net_pnl_difference_vs_symmetric": (
+                sum(item["net_pnl_difference_vs_symmetric"] for item in sessions) / len(sessions)
             ),
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)

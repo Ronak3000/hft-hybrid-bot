@@ -71,4 +71,27 @@ are unchanged.
 
 Both test flags accept multiple paths in chronological order. List each
 capture and its corresponding feature file in the same position. The report
-includes the net P&L difference for each pair and the mean across sessions.
+includes per-session and mean net P&L differences versus the plain policy and
+a fixed-width control. The control moves both quotes outward by the specified
+ticks without predictions. It isolates a width-only reference, but does not
+force the same quote activity or fill count as signal widening.
+
+## Open the Research demos
+
+Navigate to `/research` in the Next.js app. The two projects use separate,
+linkable tabs; earlier PPO results are under **Earlier PPO pilot**.
+**Order-book prediction** plays
+the selected real recording or scores it immediately with **Run to end**.
+Play, pause, step, or scrub; the realized direction only enters the confusion
+matrix once the selected horizon has been observed. The browser scores
+precomputed forecasts; it does not train a model or accept real orders.
+**Queue-aware market making** displays the three strategies on identical test
+recordings, including simulated fills, net P&L, and post-fill markouts.
+
+The browser bundle contains derived features and report metrics, not raw
+trade messages. To regenerate it, run `scripts/export_lob_research_demo.py`
+with the same `--train`, `--validation`, and `--test` feature CSV lists as
+the prediction evaluator, plus `--quote-report` and a fresh `--output` path.
+Point the UI at the checked-in export after verifying it. The browser's
+one-row logistic results are not the eight-row-window pilot table; the two
+reports have different eligibility rules.

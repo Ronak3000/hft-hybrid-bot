@@ -69,7 +69,7 @@ export default function LandingPage() {
       </section>
       <section className="pilot-callout">
         <div><span className="eyebrow">FIRST SEALED PILOT · {pilot.date}</span><h2>A useful result, including the losses.</h2><p>PPO beat fixed-spread and random controls on two test sessions, but lost to stronger inventory-aware baselines. Every policy lost money after fees.</p></div>
-        <Link href="/research" className="button-outline">Read the pilot results <ArrowRight size={17} aria-hidden="true" /></Link>
+        <Link href="/research/archive" className="button-outline">Read the pilot results <ArrowRight size={17} aria-hidden="true" /></Link>
       </section>
       <footer className="home-footer"><span>ApexHFT / Independent research</span><span>Paper simulation only · No exchange orders routed</span></footer>
     </div>
