@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { QueueModelResults } from '../advanced-results';
 import { labData, type QuoteMetrics } from '../lab-data';
+import { ProjectMasthead } from '../project-masthead';
 import s from '../lab.module.css';
 
 export const metadata: Metadata = {
@@ -27,13 +29,15 @@ export default function MarketMakingPage() {
   const { sessions, simulation_parameters: settings } = labData.quoteReport;
   return (
     <div className={s.shell}>
-      <span className={s.kicker}>Project 02 · Strategy comparison</span>
-      <h1 className={s.title}>Queue-aware market making</h1>
-      <p className={s.intro}>Compare plain Avellaneda–Stoikov, fixed wider quotes without a prediction, and quotes adjusted by the signal. Each column runs on the same recording with the same order size, inventory constraints, latency, and fees.</p>
-      <section className={s.panel}>
-        <h2>Replay assumptions</h2>
-        <p className={s.muted}>{labData.venue} · {labData.symbol} · {labData.snapshot ?? 'Recorded pilot'}. Assumed maker fee: {Number(settings.maker_fee_rate) * 10_000} bps. Order / cancel latency: {settings.order_latency_ns / 1e6} / {settings.cancel_latency_ns / 1e6} ms. Fills and queue positions are simulated estimates, not exchange executions.</p>
-      </section>
+      <ProjectMasthead index="02" label="Execution" title="Queue-aware market making" description="Follow the same market through different quoting decisions. See what happens to costs and simulated fills when PPO and SAC receive an extra signal.">
+        <span className={s.tag}>{labData.symbol}</span>
+        <span className={s.tag}>Recorded market · Simulated orders</span>
+      </ProjectMasthead>
+      <QueueModelResults />
+      <details className={s.panel}>
+        <summary className={s.detailSummary}>Earlier quote experiment and execution assumptions</summary>
+        <p className={s.note}>This comparison used Avellaneda–Stoikov, fixed wider quotes, and signal-adjusted quotes on the same recordings.</p>
+        <p className={s.note}>{labData.venue} · {labData.symbol} · {labData.snapshot ?? 'Recorded pilot'}. Assumed maker fee: {Number(settings.maker_fee_rate) * 10_000} bps. Order / cancel latency: {settings.order_latency_ns / 1e6} / {settings.cancel_latency_ns / 1e6} ms. Fills and queue positions are simulated, not exchange executions.</p>
       {sessions.map((session) => {
         const variants = [
           { name: 'Plain A–S', metrics: session.avellaneda_stoikov },
@@ -41,8 +45,8 @@ export default function MarketMakingPage() {
           { name: 'Signal-adjusted A–S', metrics: session.alpha_widened },
         ];
         return (
-          <section className={s.panel} key={session.test_capture}>
-            <h2>{session.test_capture.replace('.jsonl', '')}</h2>
+          <section className={s.detailSection} key={session.test_capture}>
+            <h3>{session.test_capture.replace('.jsonl', '')}</h3>
             <p className={s.note}>{session.matched_updates} signal updates · {session.horizon_updates}-update forecast · {session.widen_ticks}-tick adjustment</p>
             <div className={s.tableWrap}>
               <table className={s.table}>
@@ -55,7 +59,8 @@ export default function MarketMakingPage() {
           </section>
         );
       })}
-      <p className={s.muted}>Fixed widening moves both quotes outward by the same per-side distance used by the signal arm, which widens only one side. It is a width-only reference, not a matched-activity control. Negative signed movement means the mid-price moved against a simulated fill. These short recordings show the mechanics; they do not establish an edge.</p>
+        <p className={s.muted}>Fixed widening applies the same distance to both sides. It is a width-only reference, not a matched-activity control. Negative signed movement means the mid-price moved against a simulated fill.</p>
+      </details>
     </div>
   );
 }

@@ -1,0 +1,156 @@
+{
+  "purpose": "development; reused test captures, not new evidence of outperformance",
+  "captures": [
+    {
+      "file": "test-01.jsonl",
+      "sha256": "5f6ea88986eafab4d029c73048389f49c50aedc4b9b7a0887bc014424ec3d10d"
+    },
+    {
+      "file": "test-02.jsonl",
+      "sha256": "e0ca1abc3f01eea5775fd95f8bc1a1a67cef45fe723eca1a7354d81bb3e64074"
+    }
+  ],
+  "lookback": 100,
+  "levels": 10,
+  "depthEpochs": 1,
+  "depth": [
+    {
+      "horizon": 10,
+      "rows": 681,
+      "macroF1": {
+        "majority": 0.3182399590688156,
+        "microprice_sign": 0.09307306652350315,
+        "deeplob": 0.3182399590688156,
+        "cnn-lstm": 0.3182399590688156,
+        "transformer": 0.3182399590688156
+      }
+    },
+    {
+      "horizon": 50,
+      "rows": 601,
+      "macroF1": {
+        "majority": 0.25656772432616853,
+        "microprice_sign": 0.22620522996616352,
+        "deeplob": 0.25656772432616853,
+        "cnn-lstm": 0.25656772432616853,
+        "transformer": 0.24268077601410934
+      }
+    },
+    {
+      "horizon": 100,
+      "rows": 501,
+      "macroF1": {
+        "majority": 0.11092623405435385,
+        "microprice_sign": 0.25755882464743224,
+        "deeplob": 0.11092623405435385,
+        "cnn-lstm": 0.20345753887481136,
+        "transformer": 0.1570055960299863
+      }
+    }
+  ],
+  "arrival": [
+    {
+      "capture": "test-01.jsonl",
+      "hawkes": 0.11556468691675426,
+      "poisson": 1.0134734633876232
+    },
+    {
+      "capture": "test-02.jsonl",
+      "hawkes": 3.6187235156961255,
+      "poisson": 1.5146442262846753
+    }
+  ],
+  "fill": [
+    {
+      "name": "train_fill_rate",
+      "brier": 0.04355174937900455,
+      "logLoss": 0.19526133240835744,
+      "rows": 2136,
+      "fills": 96
+    },
+    {
+      "name": "logistic",
+      "brier": 0.04314425155103438,
+      "logLoss": 0.1920770996417948,
+      "rows": 2136,
+      "fills": 96
+    },
+    {
+      "name": "validation_calibrated",
+      "brier": 0.04290432828476114,
+      "logLoss": 0.18222200108643016,
+      "rows": 2136,
+      "fills": 96
+    }
+  ],
+  "seeds": [
+    7,
+    19,
+    43
+  ],
+  "rlSteps": 512,
+  "paired": [
+    {
+      "capture": "test-01.jsonl",
+      "algorithm": "PPO",
+      "off": {
+        "pnl": -0.07867025166666666,
+        "fills": 3,
+        "matchedPnl": -0.027467416666666668
+      },
+      "on": {
+        "pnl": -0.07867025166666666,
+        "fills": 3,
+        "matchedPnl": -0.027467416666666668
+      }
+    },
+    {
+      "capture": "test-01.jsonl",
+      "algorithm": "SAC",
+      "off": {
+        "pnl": -0.08925332750000001,
+        "fills": 3,
+        "matchedPnl": -0.0329609
+      },
+      "on": {
+        "pnl": -0.08925332750000001,
+        "fills": 3,
+        "matchedPnl": -0.0329609
+      }
+    },
+    {
+      "capture": "test-02.jsonl",
+      "algorithm": "PPO",
+      "off": {
+        "pnl": -0.26525601416666666,
+        "fills": 11,
+        "matchedPnl": -0.12485495416666667
+      },
+      "on": {
+        "pnl": -0.26525601416666666,
+        "fills": 11,
+        "matchedPnl": -0.12485495416666667
+      }
+    },
+    {
+      "capture": "test-02.jsonl",
+      "algorithm": "SAC",
+      "off": {
+        "pnl": -0.25859555749999996,
+        "fills": 12.333333333333334,
+        "matchedPnl": -0.14981093
+      },
+      "on": {
+        "pnl": -0.25859555749999996,
+        "fills": 12.333333333333334,
+        "matchedPnl": -0.14981093
+      }
+    }
+  ],
+  "sourceReportSha256": {
+    "depth": "36cb2a87eb73af98f3bba45ec8c1e4656e6f6d4dfc2f8a73f564c6776e2a1cd2",
+    "hawkes": "627dee39c73dab54b2f73fea03090393d5862eb5ecb908f72725c7b5b59eb8e5",
+    "fills": "bac2e876868addcff809b2a6e3548a94261ddb74b8992535495822a9f0d253c9",
+    "rl": "e303bd6ee7b14915fc066f93ba80025c3522872cc0d7c66599b61037804364e3"
+  }
+}

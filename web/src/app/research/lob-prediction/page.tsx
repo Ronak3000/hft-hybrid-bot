@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import { DepthModelResults } from '../advanced-results';
 import { labData } from '../lab-data';
 import { PredictionReplay } from '../prediction-replay';
+import { ProjectMasthead } from '../project-masthead';
 import s from '../lab.module.css';
 
 export const metadata: Metadata = {
@@ -11,11 +13,12 @@ export const metadata: Metadata = {
 export default function PredictionPage() {
   return (
     <div className={s.shell}>
-      <span className={s.kicker}>Project 01 · Prediction lab</span>
-      <h1 className={s.title}>Order-book prediction</h1>
-      <p className={s.intro}>Play a real {labData.symbol} recording or select <strong>Run to end</strong> to score the full session immediately. The browser replays saved forecasts from a model trained on earlier sessions; it does not train a new model or place orders.</p>
-      <p className={s.note}><span className={s.tag}>{labData.venue} · {labData.snapshot ?? 'Historical'} · Recorded test data</span></p>
+      <ProjectMasthead index="01" label="Prediction" title="Order-book prediction" description="Watch how the market unfolds, then compare what a simple forecast saw with what the deeper models learned.">
+        <span className={s.tag}>{labData.symbol}</span>
+        <span className={s.tag}>{labData.venue} · Recorded depth</span>
+      </ProjectMasthead>
       <PredictionReplay sessions={labData.sessions} horizons={labData.horizons} />
+      <DepthModelResults />
     </div>
   );
 }
