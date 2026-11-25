@@ -128,31 +128,6 @@ int main() {
     }
 
     // ========================================================================
-    // BENCHMARK III: SYNTHETIC IN-PROCESS TICK UPDATE LOOP
-    // ========================================================================
-    print_section("BENCHMARK III: SYNTHETIC IN-PROCESS TICK UPDATES");
-    {
-        OrderBook engine;
-        auto start = high_resolution_clock::now();
-        uint64_t state_checksum = 0;
-
-        for (int i = 0; i < ITERATIONS; ++i) {
-            engine.inject_live_tick(random_prices[i], 500, random_sides[i]);
-            state_checksum ^= engine.get_live_state_checksum() + static_cast<uint64_t>(i);
-        }
-
-        auto end = high_resolution_clock::now();
-        auto duration = duration_cast<nanoseconds>(end - start).count();
-        double throughput = (static_cast<double>(ITERATIONS) / (duration / 1e9)) / 1e6;
-        double latency = static_cast<double>(duration) / ITERATIONS;
-
-        std::cout << "  [+] Attempted Tick Updates      : " << ITERATIONS << " updates" << std::endl;
-        std::cout << "  [+] In-Process Update Throughput: " << throughput << " Million updates/sec" << std::endl;
-        std::cout << "  [+] Mean In-Process Loop Time   : " << latency << " ns / update" << std::endl;
-        std::cout << "  [+] State Checksum              : " << state_checksum << std::endl;
-    }
-
-    // ========================================================================
     // BENCHMARK IV: MIXED IN-PROCESS ACTION LOOP
     // ========================================================================
     print_section("BENCHMARK IV: MIXED IN-PROCESS ENGINE ACTIONS");

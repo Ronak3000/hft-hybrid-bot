@@ -10,8 +10,11 @@ load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise ValueError("Missing Supabase credentials. Check your .env file.")
-
-# Initialize the Supabase client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# An optional registry must not prevent the API from reporting unavailable
+# features honestly. No fabricated models are returned when it is absent.
+supabase: Client | None = None
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception:
+        supabase = None

@@ -131,7 +131,7 @@ def _features(
     bid_changes: int,
     ask_changes: int,
     levels: int,
-) -> tuple[CausalL2Features, _TopOfBook] | None:
+) -> tuple[CausalL2Features, _TopOfBook, list[tuple[Decimal, Decimal]], list[tuple[Decimal, Decimal]]] | None:
     bid_levels = nlargest(levels, book.bids.items())
     ask_levels = nsmallest(levels, book.asks.items())
     if not bid_levels or not ask_levels or book.last_update_id is None:
@@ -181,7 +181,7 @@ def _features(
             bid_levels_changed=bid_changes,
             ask_levels_changed=ask_changes,
         )
-    return row, current
+    return row, current, bid_levels, ask_levels
 
 
 def iter_l2_features(path: str | Path, levels: int = 5) -> Iterator[CausalL2Features]:
@@ -196,10 +196,17 @@ def _iter_l2_features_verified(
     path: str | Path, levels: int
 ) -> Iterator[CausalL2Features]:
     """Extract rows after the caller has verified capture integrity."""
+    for row, _, _, _ in _iter_l2_depth_verified(path, levels):
+        yield row
+
+
+def _iter_l2_depth_verified(path: str | Path, levels: int):
+    """Yield each causal feature row with the already-ranked depth ladders."""
     book: L2Book | None = None
     previous: _TopOfBook | None = None
     segment_id = -1
     snapshot_ready_ns = 0
+    applied_ordinal = 0
 
     with Path(path).open("r", encoding="utf-8") as source:
         for line_number, line in enumerate(source, start=1):
@@ -231,6 +238,7 @@ def _iter_l2_features_verified(
                     previous = None
                 if status is not ApplyStatus.APPLIED:
                     continue
+                applied_ordinal += 1
                 if previous is None:
                     previous = _top(book)
                     continue
@@ -245,11 +253,11 @@ def _iter_l2_features_verified(
                     levels,
                 )
                 if calculated is not None:
-                    row, previous = calculated
+                    row, previous, bids, asks = calculated
                     # Warm up the book and OFI without exposing feature rows
                     # timestamped before the required snapshot arrived.
                     if received >= snapshot_ready_ns:
-                        yield row
+                        yield row, bids, asks, applied_ordinal
             elif kind not in {"trade", "gap", "trade_gap", "disconnect"}:
                 raise SchemaError(f"unsupported record kind on line {line_number}: {kind}")
 

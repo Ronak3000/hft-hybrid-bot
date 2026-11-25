@@ -62,8 +62,7 @@ PYBIND11_MODULE(hft_engine, m) {
         .def("get_active_order_count", &OrderBook::get_active_order_count)
         .def("load_history_csv", &OrderBook::load_history_csv, "Load tick data straight into RAM")
         .def("get_as_quotes", &OrderBook::get_as_quotes, "Calculate Avellaneda-Stoikov quotes")
-        .def("advance_tick", &OrderBook::advance_tick, "Step the simulation forward")
+        .def("advance_tick", &OrderBook::advance_tick, "Replay supplied order messages; unavailable midpoint is NaN")
         .def("reset_cache", &OrderBook::reset_cache, "Reset the historical data pointers for a new RL episode")
-        .def("get_obi", &OrderBook::get_obi, "Calculate real-time Level-1 Order Book Imbalance (-1.0 to +1.0)")
-        .def("inject_live_tick", &OrderBook::inject_live_tick, "Inject real-time trade tick into the engine state");
+        .def("get_obi", &OrderBook::get_obi, "Calculate Level-1 imbalance from actual resting engine orders");
 }

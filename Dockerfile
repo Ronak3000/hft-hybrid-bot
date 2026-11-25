@@ -39,16 +39,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy the full application source first
 COPY api/ ./api/
 COPY engine/ ./engine/
 COPY worker/ ./worker/
+COPY scripts/ ./scripts/
+COPY data/studies/ ./data/studies/
 RUN mkdir -p ./data/
 
 # IMPORTANT: Copy compiled .so AFTER engine/ source copy so it is never overwritten.
-# trading_env.py expects it at: engine/backend_cpp/build/hft_engine*.so
+# Optional direct C++ clients use this module; the legacy RL adapter is removed.
 COPY --from=cpp-builder /cpp_build/build/ /app/engine/backend_cpp/build/
 
 # Copy start script
@@ -58,6 +61,5 @@ RUN chmod +x start.sh
 # Expose FastAPI port
 EXPOSE 8000
 
-# Default command: start FastAPI only. 
-# (Celery worker must be run separately due to 512MB free tier RAM limits)
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the workbench in one API process.
+CMD ["bash", "start.sh"]

@@ -371,15 +371,15 @@ class CaptureWriter:
         self._file.flush()
         os.fsync(self._file.fileno())
         self._file.close()
-        raw = self.path.read_bytes()
+        digest, byte_count, _ = capture_digest(self.path)
         manifest = {
-            "byte_count": len(raw),
+            "byte_count": byte_count,
             "capture_file": self.path.name,
             "metadata": self._metadata,
             "record_count": self._records,
             "schema_version": SCHEMA_VERSION,
             # Hash the bytes from disk rather than relying on text newline behavior.
-            "sha256": hashlib.sha256(raw).hexdigest(),
+            "sha256": digest,
         }
         with self.manifest_path.open("x", encoding="utf-8", newline="\n") as output:
             output.write(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
@@ -395,6 +395,18 @@ class CaptureWriter:
         self.close()
 
 
+def capture_digest(path: str | Path) -> tuple[str, int, int]:
+    """Bounded-memory hashing for long real-data recordings."""
+    digest = hashlib.sha256()
+    size = records = 0
+    with Path(path).open("rb") as source:
+        while block := source.read(1024 * 1024):
+            digest.update(block)
+            size += len(block)
+            records += block.count(b"\n")
+    return digest.hexdigest(), size, records
+
+
 def verify_capture(path: str | Path) -> Mapping[str, Any]:
     capture_path = Path(path)
     manifest_path = Path(f"{capture_path}.manifest.json")
@@ -403,18 +415,18 @@ def verify_capture(path: str | Path) -> Mapping[str, Any]:
     except (OSError, json.JSONDecodeError) as exc:
         raise CaptureIntegrityError(f"cannot read capture manifest: {exc}") from exc
     try:
-        raw = capture_path.read_bytes()
+        digest, size, records = capture_digest(capture_path)
     except OSError as exc:
         raise CaptureIntegrityError(f"cannot read capture: {exc}") from exc
     if manifest.get("schema_version") != SCHEMA_VERSION:
         raise CaptureIntegrityError("unsupported capture schema version")
     if manifest.get("capture_file") != capture_path.name:
         raise CaptureIntegrityError("manifest capture filename does not match")
-    if manifest.get("byte_count") != len(raw):
+    if manifest.get("byte_count") != size:
         raise CaptureIntegrityError("capture byte count does not match manifest")
-    if manifest.get("sha256") != hashlib.sha256(raw).hexdigest():
+    if manifest.get("sha256") != digest:
         raise CaptureIntegrityError("capture SHA-256 does not match manifest")
-    if manifest.get("record_count") != raw.count(b"\n"):
+    if manifest.get("record_count") != records:
         raise CaptureIntegrityError("capture record count does not match manifest")
     return manifest
 

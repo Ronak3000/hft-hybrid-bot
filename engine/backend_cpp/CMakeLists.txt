@@ -41,7 +41,7 @@ if(APEXHFT_ENABLE_SANITIZERS)
 endif()
 
 option(APEXHFT_BUILD_PYTHON "Build the Pybind11 Python extension" ON)
-option(APEXHFT_BUILD_BENCHMARKS "Build synthetic microbenchmarks" ON)
+option(APEXHFT_BUILD_BENCHMARKS "Build isolated synthetic engineering microbenchmarks (never trading input)" OFF)
 include(CTest)
 
 if(APEXHFT_BUILD_PYTHON)

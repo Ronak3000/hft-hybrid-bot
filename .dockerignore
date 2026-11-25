@@ -1,0 +1,17 @@
+.git
+.venv
+venv
+**/.env
+**/.env.*
+**/__pycache__
+**/*.pyc
+web/node_modules
+web/.next
+tmp
+*.csv
+data/workbench
+data/captures
+engine/saved_models
+engine/backend_cpp/build
+engine/backend_cpp/build-*
+data/features

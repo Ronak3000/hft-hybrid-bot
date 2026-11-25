@@ -26,7 +26,11 @@ from engine.simulation.quote_grid import quote_grid_economics
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--plan", type=Path, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--plan", type=Path)
+    source.add_argument("--archive-window", type=Path, help="Verified dated Binance archive capture from the workbench")
+    source.add_argument("--archive-dataset", type=Path, help="Complete, hash-sealed multi-window archive manifest")
+    source.add_argument("--recorded-window", type=Path, help="Previously recorded Binance depth/trade session")
     parser.add_argument("--tick-size", type=Decimal, required=True)
     parser.add_argument("--quantity", type=Decimal, required=True)
     parser.add_argument("--initial-cash", type=Decimal, default=Decimal("1000000"))
@@ -56,6 +60,11 @@ def main() -> None:
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--gae-lambda", type=float, default=0.95)
     parser.add_argument("--clip-range", type=float, default=0.2)
+    parser.add_argument("--clip-range-vf", type=float)
+    parser.add_argument("--target-kl", type=float)
+    parser.add_argument("--normalize-advantage", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--orthogonal-init", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--activation", choices=("tanh", "relu"), default="tanh")
     parser.add_argument("--value-coefficient", type=float, default=0.5)
     parser.add_argument("--max-grad-norm", type=float, default=0.5)
     parser.add_argument("--n-epochs", type=int, default=10)
@@ -120,10 +129,41 @@ def main() -> None:
         torch.set_num_threads(args.torch_threads)
         torch.use_deterministic_algorithms(True)
 
-        training_paths = validated_split_capture_paths(
-            args.plan, "train", project_root=PROJECT_ROOT
-        )
-        plan = load_study_plan(args.plan)
+        if args.plan:
+            training_paths = validated_split_capture_paths(args.plan, "train", project_root=PROJECT_ROOT)
+            plan = load_study_plan(args.plan)
+        elif args.recorded_window:
+            from engine.market_data.history import validate
+            from datetime import timedelta
+            path = args.recorded_window
+            meta = verify_capture(path)["metadata"]
+            if meta.get("venue") != "binance_spot" or meta.get("source") != "Binance Spot REST snapshot + combined diff-depth/trade WebSocket":
+                raise ValueError("Expected a directly recorded Binance depth/trade session.")
+            validate(path)
+            with path.open(encoding="utf-8") as source:
+                times = (r["received_time_ns"] for r in map(json.loads, source) if r["kind"] != "metadata")
+                first = last = next(times)
+                for ns in times:
+                    first, last = min(first, ns), max(last, ns)
+            epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+            window_meta = {**meta, "start": (epoch + timedelta(microseconds=first//1000)).isoformat(),
+                           "end": (epoch + timedelta(microseconds=last//1000+1)).isoformat()}
+            training_paths = (path,)
+        elif args.archive_dataset:
+            from engine.market_data.history import load_dataset
+            window_meta, training_paths = load_dataset(args.archive_dataset)
+            from math import ceil
+            duration = (datetime.fromisoformat(window_meta["end"]) - datetime.fromisoformat(window_meta["start"])).total_seconds()
+            minimum_steps = ceil(duration / (args.decision_interval_ns / 1e9)) if args.decision_interval_ns else 0
+            if args.total_timesteps < minimum_steps:
+                raise ValueError(f"At least {minimum_steps} steps (rounded up to a rollout multiple) are required to cover this dataset once.")
+        else:
+            from engine.market_data.history import validate
+            validate(args.archive_window)
+            training_paths = (args.archive_window,)
+            window_meta = verify_capture(args.archive_window)["metadata"]
+            if window_meta["source"] != "Tardis raw Binance Spot depthSnapshot/depth/trade":
+                raise ValueError("Expected a dated Binance Spot archive.")
         config = SimulationConfig(
             initial_cash=args.initial_cash,
             maker_fee_rate=args.maker_fee_rate,
@@ -178,13 +218,17 @@ def main() -> None:
             gamma=args.gamma,
             gae_lambda=args.gae_lambda,
             clip_range=args.clip_range,
+            clip_range_vf=args.clip_range_vf,
+            target_kl=args.target_kl,
+            normalize_advantage=args.normalize_advantage,
             vf_coef=args.value_coefficient,
             max_grad_norm=args.max_grad_norm,
             n_epochs=args.n_epochs,
             n_steps=args.n_steps,
             batch_size=args.batch_size,
             policy_kwargs={
-                "activation_fn": torch.nn.Tanh,
+                "activation_fn": torch.nn.Tanh if args.activation == "tanh" else torch.nn.ReLU,
+                "ortho_init": args.orthogonal_init,
                 "net_arch": [args.hidden_width] * args.hidden_layers,
             },
             seed=args.seed,
@@ -192,6 +236,8 @@ def main() -> None:
             verbose=1,
         )
         model.learn(total_timesteps=args.total_timesteps)
+        if (args.archive_dataset or args.recorded_window) and environment.completed_capture_indices != set(range(len(training_paths))):
+            raise ValueError("Training budget did not complete every selected capture; increase total timesteps.")
         args.output.parent.mkdir(parents=True, exist_ok=True)
         model.save(str(args.output))
     except (ImportError, OSError, RuntimeError, ValueError) as exc:
@@ -203,7 +249,6 @@ def main() -> None:
     if not args.output.is_file():
         parser.error("Stable-Baselines3 did not create the requested model")
 
-    plan_bytes = args.plan.read_bytes()
     model_bytes = args.output.read_bytes()
     sidecar = {
         "ppo_artifact_schema_version": 1,
@@ -212,8 +257,13 @@ def main() -> None:
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "model_sha256": hashlib.sha256(model_bytes).hexdigest(),
         "model_byte_count": len(model_bytes),
-        "study_plan_file": args.plan.name,
-        "study_plan_sha256": hashlib.sha256(plan_bytes).hexdigest(),
+        **({"study_plan_file": args.plan.name,
+            "study_plan_sha256": hashlib.sha256(args.plan.read_bytes()).hexdigest(),
+            "study_name": plan["study_name"]} if args.plan else
+           {"archive_window": {key: window_meta[key] for key in ("symbol", "start", "end", "source")}}),
+        **({"archive_dataset_file": args.archive_dataset.name,
+            "archive_dataset_sha256": hashlib.sha256(args.archive_dataset.read_bytes()).hexdigest(),
+            "episode_reset_minutes": window_meta["episode_reset_minutes"]} if args.archive_dataset else {}),
         "training_captures": [
             {
                 "capture_file": path.name,
@@ -249,6 +299,11 @@ def main() -> None:
             "gamma": args.gamma,
             "gae_lambda": args.gae_lambda,
             "clip_range": args.clip_range,
+            "clip_range_vf": args.clip_range_vf,
+            "target_kl": args.target_kl,
+            "normalize_advantage": args.normalize_advantage,
+            "activation": args.activation,
+            "orthogonal_init": args.orthogonal_init,
             "value_coefficient": args.value_coefficient,
             "max_grad_norm": args.max_grad_norm,
             "n_epochs": args.n_epochs,
@@ -270,7 +325,6 @@ def main() -> None:
             "machine": platform.machine(),
             "processor": platform.processor(),
         },
-        "study_name": plan["study_name"],
         "claim_status": "training artifact only; no out-of-sample result",
     }
     with sidecar_path.open("x", encoding="utf-8", newline="\n") as destination:

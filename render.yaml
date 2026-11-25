@@ -4,12 +4,9 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
+    healthCheckPath: /health
     envVars:
-      - key: SUPABASE_URL
+      - key: APEX_OPERATOR_TOKEN
         sync: false
-      - key: SUPABASE_KEY
-        sync: false
-      - key: CELERY_BROKER_URL
-        sync: false
-      - key: CELERY_RESULT_BACKEND
+      - key: CORS_ORIGINS
         sync: false

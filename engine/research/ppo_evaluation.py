@@ -214,9 +214,7 @@ def evaluate_ppo_artifacts(
     }
 
 
-def _evaluate_capture(
-    predictor: Predictor, capture_path: Path, config: dict[str, Any], *, fill_diagnostics: bool = False,
-) -> dict[str, Any]:
+def policy_environment(paths, config, *, fill_diagnostics=False, stream_records=None):
     simulation = SimulationConfig(
         initial_cash=Decimal(config["initial_cash"]),
         maker_fee_rate=Decimal(config["maker_fee_rate"]),
@@ -224,8 +222,8 @@ def _evaluate_capture(
         cancel_latency_ns=int(config["cancel_latency_ns"]),
         max_abs_inventory=Decimal(config["max_abs_inventory"]),
     )
-    environment = QueueReplayEnv(
-        (capture_path,),
+    return QueueReplayEnv(
+        paths,
         tick_size=Decimal(config["tick_size"]),
         quantity=Decimal(config["quantity"]),
         simulation_config=simulation,
@@ -241,7 +239,15 @@ def _evaluate_capture(
         observation_schema_version=int(config.get("observation_schema_version", 1)),
         entry_fee_buffer_bps=config.get("entry_fee_buffer_bps"),
         record_fill_diagnostics=fill_diagnostics,
+        stream_records=stream_records,
     )
+
+
+def _evaluate_capture(
+    predictor: Predictor, capture_path: Path, config: dict[str, Any], *, fill_diagnostics: bool = False, check=lambda: None, on_step=None,
+) -> dict[str, Any]:
+    environment = policy_environment((capture_path,), config, fill_diagnostics=fill_diagnostics)
+    simulation = environment.config
     segments = []
     try:
         for segment_index in range(environment.capture_segment_counts[0]):
@@ -251,11 +257,14 @@ def _evaluate_capture(
             maximum_inventory = abs(Decimal(info["inventory"]))
             action_counts: dict[str, int] = {}
             while True:
+                check()
                 action, _ = predictor.predict(observation, deterministic=True)
                 parameters = environment.action_parameters(action)
                 mode = parameters.get("side_mode", "both" if parameters["quote"] else "off")
                 action_counts[mode] = action_counts.get(mode, 0) + 1
                 observation, _, terminated, truncated, info = environment.step(action)
+                if on_step is not None:
+                    on_step(environment,info)
                 maximum_inventory = max(
                     maximum_inventory, abs(Decimal(info["inventory"]))
                 )
