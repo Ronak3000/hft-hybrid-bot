@@ -352,6 +352,7 @@ def launch(kind, req):
     job = uuid4().hex
     path = DATA / "jobs" / (job + ".json")
     path.parent.mkdir(parents=True, exist_ok=True)
+    last_result = None
     def save(status, message, result=None):
         tmp = path.with_suffix(".tmp")
         tmp.write_text(json.dumps(dict(job_id=job, kind=kind, request=req.model_dump(mode="json"),
@@ -364,6 +365,9 @@ def launch(kind, req):
                 if attempt==7: raise
                 time.sleep(.02*(attempt+1))
     def update(message, result=None):
+        nonlocal last_result
+        if result is not None:
+            last_result = result
         save("running", message, result)
     def work():
         global ACTIVE
@@ -371,9 +375,9 @@ def launch(kind, req):
             result = execute(kind, req, job, update, check=CANCEL_CHECK)
             outcome = ("completed", "Completed", result)
         except JobCanceled as exc:
-            outcome = ("canceled", str(exc), None)
+            outcome = ("canceled", str(exc), last_result)
         except Exception as exc:
-            outcome = ("failed", str(exc) or type(exc).__name__, None)
+            outcome = ("failed", str(exc) or type(exc).__name__, last_result)
         with LOCK:
             try:
                 save(*outcome)

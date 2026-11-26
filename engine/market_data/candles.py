@@ -13,6 +13,25 @@ MINUTE = 60000
 SYMBOLS = ("BTCUSDT","ETHUSDT","SOLUSDT")
 
 
+def _request_page(client, params, check):
+    # Retry the same immutable window, never substitute a price or skip ahead.
+    for attempt in range(3):
+        check()
+        try:
+            response = client.get(URL, params=params, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except requests.HTTPError as exc:
+            status = exc.response.status_code
+            if status not in (408, 500, 502, 503, 504):
+                raise ValueError(f"Binance.US candle request rejected (HTTP {status}).") from exc
+        except (requests.ConnectionError, requests.Timeout):
+            pass
+        if attempt < 2:
+            time.sleep(.5 * 2**attempt)
+    raise ValueError("Binance.US candle feed unavailable after three attempts; no prices were substituted.")
+
+
 def get_bars(symbol, first, stop, check=lambda: None, update=lambda msg: None, *, allow_gaps=False):
     if symbol not in SYMBOLS or first % MINUTE or stop % MINUTE or not first < stop <= int(time.time() * 1000):
         raise ValueError("Expected a supported symbol and completed UTC minutes.")
@@ -20,12 +39,9 @@ def get_bars(symbol, first, stop, check=lambda: None, update=lambda msg: None, *
     cursor = first
     with requests.Session() as client:
         while cursor < stop:
-            check()
             page_end = min(stop,cursor+1000*MINUTE)
-            response = client.get(URL, params=dict(symbol=symbol, interval="1m", startTime=cursor,
-                                  endTime=page_end-1, limit=1000), timeout=20)
-            response.raise_for_status()
-            page = response.json()
+            page = _request_page(client, dict(symbol=symbol, interval="1m", startTime=cursor,
+                                               endTime=page_end-1, limit=1000), check)
             if not isinstance(page, list):
                 raise ValueError("Invalid Binance.US response.")
             for row in page:

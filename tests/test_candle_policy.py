@@ -1,10 +1,32 @@
 import unittest
 from unittest.mock import MagicMock, patch
+import requests
 from engine.market_data.candles import get_bars
 from engine.rl_trading.candle_policy import CandleEnv, next_live_bars, split_sessions
 
 
 class CandleTests(unittest.TestCase):
+    def test_transport_reset_retries_the_same_closed_window(self):
+        response = MagicMock()
+        response.json.return_value = [[0, 1, 1, 1, 1, 0, 59999]]
+        with patch("engine.market_data.candles.requests.Session") as session, patch(
+            "engine.market_data.candles.time.sleep"
+        ):
+            get = session.return_value.__enter__.return_value.get
+            get.side_effect = [requests.ConnectionError("reset"), response]
+            self.assertEqual(get_bars("BTCUSDT", 0, 60000), [[0, 1, 1, 1, 1, 0]])
+            self.assertEqual(get.call_args_list[0], get.call_args_list[1])
+
+    def test_persistent_transport_reset_fails_instead_of_substituting_bars(self):
+        with patch("engine.market_data.candles.requests.Session") as session, patch(
+            "engine.market_data.candles.time.sleep"
+        ):
+            get = session.return_value.__enter__.return_value.get
+            get.side_effect = requests.ConnectionError("reset")
+            with self.assertRaisesRegex(ValueError, "no prices were substituted"):
+                get_bars("BTCUSDT", 0, 60000, allow_gaps=True)
+            self.assertEqual(get.call_count, 3)
+
     def test_gap_is_not_a_price_move_or_fill(self):
         rows=[[i*60000,p,p,p,p,1] for i,p in [(0,1),(1,2),(10,900),(11,901)]]
         env=CandleEnv(rows,split_sessions(rows))
