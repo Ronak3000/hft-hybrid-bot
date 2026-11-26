@@ -129,3 +129,17 @@
     @apply font-sans;
   }
 }
+.policy-form {display:grid;gap:1rem;max-width:850px;margin-bottom:1rem}
+.policy-form label {display:grid;gap:.4rem;font-size:.9rem}
+.policy-form input,.policy-form select {background:#101824;color:#e8eef5;border:1px solid #364355;padding:.65rem;border-radius:.4rem;color-scheme:dark;width:100%}
+.policy-fields,.policy-output dl {display:flex;gap:1.5rem;flex-wrap:wrap}
+.policy-output pre {overflow:auto;max-height:22rem;font-size:.8rem}
+.policy-output dt {color:#96a5ba}.policy-output dd {font-family:monospace}
+.policy-form button {justify-self:start}.policy-form button:disabled {opacity:.5}
+.policy-settings {display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1rem;margin-top:1rem}
+.policy-settings small {color:#96a5ba;font-size:.75rem}
+.policy-form summary {cursor:pointer;padding:.5rem 0}
+.policy-estimate {border-left:2px solid #64d7b1;padding:1rem;background:#101824;font-size:.85rem}
+.trader-layout{display:grid;grid-template-columns:minmax(0,2.5fr) minmax(240px,1fr);gap:1rem;align-items:start}
+.trader-layout section{min-width:0}.trader-layout select{max-width:100%}.trader-metrics{display:flex;gap:1rem;flex-wrap:wrap;margin:1rem 0}.trader-metrics strong{display:block;font:600 1.1rem monospace}.trader-metrics small{color:#9db2ba}.trader-empty{min-height:300px;display:grid;place-items:center;color:#a9b9bf;background:#101821;text-align:center}
+@media(max-width:950px){.trader-layout{grid-template-columns:1fr}}

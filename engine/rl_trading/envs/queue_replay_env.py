@@ -62,10 +62,14 @@ class QueueReplayEnv(gym.Env[np.ndarray, Any]):
         observation_schema_version: int = 1,
         entry_fee_buffer_bps: Decimal | str | None = None,
         record_fill_diagnostics: bool = False,
+        stream_records: Iterator[tuple[int, dict[str, Any]]] | None = None,
     ) -> None:
         super().__init__()
-        if not capture_paths:
+        self._live_records = stream_records
+        if not capture_paths and stream_records is None:
             raise ValueError("at least one training capture is required")
+        if capture_paths and stream_records is not None:
+            raise ValueError("Supply either capture files or one live stream.")
         self.capture_paths = tuple(Path(path) for path in capture_paths)
         hashes: set[str] = set()
         ordered_hashes: list[str] = []
@@ -163,13 +167,14 @@ class QueueReplayEnv(gym.Env[np.ndarray, Any]):
         self.simulator = QueueAwareSimulator(self.config)
         self.current_capture_index = 0
         self.current_segment_index = 0
-        self.current_capture_path = self.capture_paths[0]
+        self.current_capture_path = self.capture_paths[0] if self.capture_paths else None
         self.current_decision_time_ns = 0
         self._previous_mid = Decimal("0")
         self._previous_net_worth = self.config.initial_cash
         self._last_action = 0
         self._episode_done = True
         self._steps = 0
+        self.completed_capture_indices: set[int] = set()
 
     def reset(
         self,
@@ -187,7 +192,11 @@ class QueueReplayEnv(gym.Env[np.ndarray, Any]):
         )
         if requested_capture is None and requested_segment is not None:
             raise ValueError("segment_index requires capture_index")
-        if requested_capture is None:
+        if self._live_records is not None:
+            if self._episode_number or options:
+                raise ValueError("A live stream is a single forward-only episode.")
+            index, segment_index = 0, 0
+        elif requested_capture is None:
             index, segment_index = self._episodes[
                 self._episode_number % len(self._episodes)
             ]
@@ -205,10 +214,13 @@ class QueueReplayEnv(gym.Env[np.ndarray, Any]):
         self._episode_number += 1
         self.current_capture_index = index
         self.current_segment_index = segment_index
-        self.current_capture_path = self.capture_paths[index]
         self.simulator = QueueAwareSimulator(self.config)
-        self._source = self.current_capture_path.open("r", encoding="utf-8")
-        self._records = self._iter_records(self._source)
+        if self._live_records is not None:
+            self._records = self._live_records
+        else:
+            self.current_capture_path = self.capture_paths[index]
+            self._source = self.current_capture_path.open("r", encoding="utf-8")
+            self._records = self._iter_records(self._source)
         self._pending_record = None
         self.book = None
         self._last_action = 0
@@ -277,6 +289,8 @@ class QueueReplayEnv(gym.Env[np.ndarray, Any]):
         self._steps += 1
         if truncated:
             self._invalidate_at_end()
+            if reason == "end_of_capture":
+                self.completed_capture_indices.add(self.current_capture_index)
         observation = self._observation(mid)
         fills = tuple(self.simulator.fills[fill_start:])
         self._episode_done = truncated
@@ -582,12 +596,10 @@ class QueueReplayEnv(gym.Env[np.ndarray, Any]):
         account = self.simulator.account(mid)
         statuses = tuple(order.status for order in self.simulator.orders.values())
         return {
-            "capture_file": self.current_capture_path.name,
-            "capture_sha256": self.capture_hashes[self.current_capture_index],
+            "capture_file": self.current_capture_path.name if self.current_capture_path else None,
+            "capture_sha256": self.capture_hashes[self.current_capture_index] if self.capture_hashes else None,
             "capture_segment_index": self.current_segment_index,
-            "capture_segment_count": self.capture_segment_counts[
-                self.current_capture_index
-            ],
+            "capture_segment_count": self.capture_segment_counts[self.current_capture_index] if self.capture_segment_counts else None,
             "decision_time_ns": self.current_decision_time_ns,
             "decision_interval_ns": self.decision_interval_ns,
             "action_schema_version": self.action_schema_version,

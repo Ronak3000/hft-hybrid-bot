@@ -1,31 +1,13 @@
-version: '3.8'
-
 services:
   api:
     build: .
     restart: always
-    command: python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
+    command: python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --no-proxy-headers
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_KEY}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
-      - INTERNAL_API_URL=http://api:8000
-
-  worker:
-    build: .
-    restart: always
-    command: celery -A worker.tasks.rl_training worker --loglevel=info
-    environment:
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_KEY}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
-      - INTERNAL_API_URL=http://api:8000
-    depends_on:
-      - api
+      - APEX_OPERATOR_TOKEN=${APEX_OPERATOR_TOKEN:?Set an operator token for Docker}
+      - TARDIS_API_KEY=${TARDIS_API_KEY:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     volumes:
-      - ./data:/app/data
-      - ./engine/saved_models:/app/engine/saved_models
+      - ./data/workbench:/app/data/workbench

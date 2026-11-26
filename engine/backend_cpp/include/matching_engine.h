@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -169,11 +170,6 @@ private:
     size_t replay_index = 0;
     size_t active_order_count = 0;
 
-    uint64_t live_ticker_price = 62500;
-    uint64_t live_bid_depth_volume = 10;
-    uint64_t live_ask_depth_volume = 10;
-    bool mode_is_live = false;
-
     static bool parse_history_line(std::string_view line, HistoricalMessage& message) {
         std::array<std::string_view, 6> fields{};
         size_t start = 0;
@@ -274,19 +270,6 @@ public:
           asks(price_level_capacity),
           active_orders(order_id_capacity),
           pool(order_pool_capacity) {}
-
-    // Aggregate trades drive paper-simulation signals only; they do not mutate the LOB.
-    void inject_live_tick(uint64_t scaled_price, uint32_t volume, bool is_buyer_maker) noexcept {
-        live_ticker_price = scaled_price;
-        mode_is_live = true;
-        if (is_buyer_maker) {
-            live_bid_depth_volume = volume;
-            live_ask_depth_volume = static_cast<uint64_t>(volume) * 2;
-        } else {
-            live_bid_depth_volume = static_cast<uint64_t>(volume) * 2;
-            live_ask_depth_volume = volume;
-        }
-    }
 
     ProcessResult process_order(uint64_t id, uint64_t price, uint32_t qty, int side_value) {
         NoopTradeSink sink;
@@ -445,15 +428,9 @@ public:
     size_t get_pool_available() const noexcept { return pool.available(); }
     size_t get_pool_capacity() const noexcept { return pool.capacity(); }
     size_t get_history_size() const noexcept { return history.size(); }
-    uint64_t get_live_state_checksum() const noexcept {
-        return live_ticker_price ^ (live_bid_depth_volume << 1U) ^ (live_ask_depth_volume << 2U);
-    }
-
     double get_obi() const noexcept {
-        const double bid_volume = static_cast<double>(
-            mode_is_live ? live_bid_depth_volume : get_best_bid_volume());
-        const double ask_volume = static_cast<double>(
-            mode_is_live ? live_ask_depth_volume : get_best_ask_volume());
+        const double bid_volume = static_cast<double>(get_best_bid_volume());
+        const double ask_volume = static_cast<double>(get_best_ask_volume());
         if (bid_volume + ask_volume == 0.0) return 0.0;
         return (bid_volume - ask_volume) / (bid_volume + ask_volume);
     }
@@ -538,7 +515,6 @@ public:
     void reset_cache() {
         replay_index = 0;
         active_order_count = 0;
-        mode_is_live = false;
         bids_tree = BitTree{};
         asks_tree = BitTree{};
         active_orders.clear_all();
@@ -548,16 +524,12 @@ public:
     }
 
     std::pair<double, bool> advance_tick() {
-        if (mode_is_live) return {static_cast<double>(live_ticker_price), false};
-
         replay_next_tick();
         const bool is_out_of_data = replay_index >= history.size();
-        double current_price = 62500.0;
+        double current_price = std::numeric_limits<double>::quiet_NaN();
         const int best_bid = get_best_bid();
         const int best_ask = get_best_ask();
         if (best_bid != -1 && best_ask != -1) current_price = (best_bid + best_ask) / 2.0;
-        else if (best_bid != -1) current_price = best_bid;
-        else if (best_ask != -1) current_price = best_ask;
         return {current_price, is_out_of_data};
     }
 };

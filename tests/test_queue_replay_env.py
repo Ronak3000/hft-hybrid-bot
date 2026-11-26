@@ -97,6 +97,29 @@ def _multisegment_capture(path: Path) -> None:
 
 @unittest.skipIf(gymnasium is None, "gymnasium is not installed")
 class QueueReplayEnvTests(unittest.TestCase):
+    def test_stream_and_file_have_identical_decisions_and_fills(self):
+        import json
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "parity.jsonl"
+            _capture(path)
+            kw = dict(tick_size="1", quantity="1", observation_schema_version=2)
+            file_env = QueueReplayEnv((path,), **kw)
+            events = enumerate(map(json.loads, path.read_text().splitlines()), 1)
+            live_env = QueueReplayEnv((), stream_records=events, **kw)
+            try:
+                np.testing.assert_array_equal(file_env.reset()[0], live_env.reset()[0])
+                while True:
+                    a, b = file_env.step(1), live_env.step(1)
+                    np.testing.assert_array_equal(a[0], b[0])
+                    self.assertEqual(a[1:4], b[1:4])
+                    for field in ("total_fills", "cash", "inventory", "net_worth", "submitted_orders", "decision_time_ns"):
+                        self.assertEqual(a[4][field], b[4][field])
+                    if a[3]:
+                        break
+            finally:
+                file_env.close()
+                live_env.close()
+
     def test_entry_guard_fee_math_and_capped_inventory_reduction(self):
         from engine.simulation import QuoteTarget
         from engine.simulation.entry_guard import guard_entry_costs

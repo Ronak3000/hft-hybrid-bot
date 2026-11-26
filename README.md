@@ -1,6 +1,6 @@
 # ApexHFT
 
-ApexHFT is an experimental market-microstructure research project. It combines a C++ order-book prototype, Python/Gymnasium strategy experiments, PPO training infrastructure, a FastAPI/Celery control plane, and a Next.js interface.
+ApexHFT is an experimental market-microstructure research project. It combines a C++ order-book prototype, verified Binance capture research, Python/Gymnasium PPO training, a FastAPI availability API, and a Next.js interface.
 
 The project is under active validation. It is not an exchange, brokerage system, production trading platform, or demonstrated profitable strategy.
 
@@ -57,11 +57,10 @@ systems component; these studies do not use the candle PPO path.
 - A byte-sealed BTCUSDT pilot experiment record freezing three seeds, explicit
   PPO architecture/hyperparameters, execution costs, and the training-only
   Avellaneda–Stoikov calibration before validation performance is examined.
-- FastAPI, Celery, Redis-compatible job handling, and optional Supabase model storage.
-- A Next.js interface for training controls, an exchange-trade-driven paper simulation, and historical OHLCV visualization.
+- A three-tab workbench for training PPO on free Binance.US minute candles, testing frozen weights on a later date range, and running the same model against newly closed live candles. BTCUSDT, ETHUSDT and SOLUSDT checkpoints are kept separate.
 - A backend-independent `/research` overview showing the documented pilot,
   fee-inclusive losses, simulation assumptions, and source provenance. The
-  illustrated landing-page book is explicitly labeled as non-live data.
+  landing-page book is an actual recorded Binance snapshot, explicitly not live.
 - A working `/replay` demo: play, pause, seek, switch recorded training
   sessions, a saved PPO v2 policy, and rule-based controls; inspect real L2 depth,
   model decisions, and simulated fills,
@@ -72,15 +71,24 @@ systems component; these studies do not use the candle PPO path.
 
 ## Data and simulation status
 
-There are currently three data paths:
+The genuine-capture path remains: `scripts/capture_binance_l2.py` records
+Binance Spot REST depth snapshots, diff-depth WebSocket payloads, and individual
+public-trade messages. It validates sequences and seals immutable captures.
+The streams are not exchange-atomic; this is market-by-price L2, not market-by-order.
 
-1. `scripts/fetch_real_market_data.py` downloads up to roughly 400,000 Binance aggregate trades. Aggregate trades are executions, not Level-2 order-book snapshots or deltas.
-2. `worker/utils/data_downloader.py` downloads one-minute OHLCV candles and converts them into synthetic add/execute messages. These generated events are not reconstructed exchange order flow or L2 data.
-3. `scripts/capture_binance_l2.py` co-captures genuine Binance Spot REST depth snapshots, diff-depth WebSocket payloads, and individual public-trade messages. It preserves WebSocket arrival order, validates depth sequences, records trade-ID diagnostics and reconnect boundaries, writes files without overwriting them, and seals each capture with a metadata-and-SHA-256 manifest. The two WebSocket streams share a local connection but are not an exchange-atomic combined event. This is aggregated market-by-price L2 plus public executions, not market-by-order data or the strategy's fills.
+The OHLCV-to-order generator, aggregate-trade-to-order converter, legacy RL
+environment, fabricated-depth live adapter and fallback prices have been removed.
+The date-range UI downloads public Binance.US one-minute candles with no key.
+Missing candle minutes are reported and split into independent episodes, not
+filled with invented prices. This directional candle policy does not use the C++
+matching engine or model exchange queue priority.
 
-The exchange-connected dashboard consumes Binance aggregate trade messages and applies local paper-fill logic. It does not submit, cancel, or reconcile orders with an exchange. No real funds are routed.
-
-The historical page currently visualizes recent OHLCV candles only. It deliberately does not report strategy P&L, fills, win rate, or drawdown until a deterministic evaluation service replaces the former client-side mock results.
+The separate queue-market-making path can train with `scripts/train_queue_ppo.py`
+on verified Binance Spot L2/trade captures or use the API's Tardis archive
+download (most dates require a key). Its live adapter uses a forward-only
+depth/trade stream. Both paths model paper fills, not real exchange fills; no
+orders are routed.
+See [the restored workflows and date-range guide](docs/phase21-real-data-workbench.md).
 
 ## Microbenchmark snapshot
 
@@ -98,12 +106,12 @@ These figures are single-threaded, in-process synthetic microbenchmark observati
 ## Known limitations
 
 - The L2 pipeline currently supports Binance Spot only and has not yet produced a published research dataset window.
-- The OHLCV-derived worker still generates execute events with unrelated order IDs, so those events normally cannot identify a resting order even though replay now supports partial execution correctly.
+- The workbench requires one API process, durable storage for saved weights, an operator token when hosted, and enough memory/CPU for PPO. Only the optional L2 archive path requires access for non-sample dates.
+- L2 archive training and historical tests reset paper accounts at ten-minute chunk boundaries. The candle path resets at real gaps. A sum of episode P&Ls is not a continuous multi-month portfolio backtest.
 - The C++ matching engine intentionally does not model participant accounts.
   The separate paper simulator tests cash, inventory, fees, and turnover, but it
   is not an exchange clearing or reconciliation system.
-- The legacy OHLCV/synthetic-event RL environment has not demonstrated
-  meaningful learning and is not the research PPO path.
+- The legacy OHLCV/synthetic-event environment has been deleted and cannot be used for training or deployment.
 - Exact queue position is unobservable from market-by-price L2. A documented
   conservative queue-ahead approximation is implemented, but displayed
   cancellations currently receive no queue credit.
@@ -167,7 +175,7 @@ collection plan. Fee coverage is a sanity check, not an edge or fill guarantee.
 ```text
 engine/backend_cpp/       C++ order-book prototype and Pybind11 module
 engine/rl_trading/        Gymnasium environment
-worker/                   Celery training task and data downloader
+worker/                   Compatibility task that rejects retired jobs
 api/                      FastAPI control plane
 web/                      Next.js interface
 scripts/                  Data, training, evaluation, and model utilities
@@ -225,16 +233,15 @@ summaries in a non-overwriting JSON report.
 ### Start the API
 
 ```bash
-python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
+python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --no-proxy-headers
 ```
 
-### Start the worker
+### Train on genuine captures
 
-Configure Redis/Celery and optional Supabase environment variables first, then run:
-
-```bash
-celery -A worker.tasks.rl_training worker --loglevel=info
-```
+Use the `/train` workbench for keyless Binance.US candle downloads and configurable
+PPO. For queue-aware research on verified L2 recordings, see the
+[queue market-making workspace](research/02-queue-market-making/README.md).
+Training uses a single API process, without Supabase, Redis or Celery.
 
 ### Start the web interface
 
@@ -249,8 +256,9 @@ Open `http://localhost:3000`.
 Start at `/replay` for the working real-data player, or `/research` for a
 backend-independent project walkthrough. The research overview is a
 static summary of the checked-in pilot notes, not an interactive capture replay
-or a live feed. The `/dashboard` and `/train` pages still require the legacy
-API/worker stack; the new queue-replay PPO tooling is not yet wired into them.
+or a live feed. Use `/train` to download real historical data and train,
+`/backtest` to evaluate frozen weights on later data, and `/dashboard` for bounded
+live paper sessions. See [setup, controls and archive limits](docs/phase21-real-data-workbench.md).
 See [the research interface guide](docs/research-interface.md).
 The [working replay guide](docs/phase15-working-replay.md) explains the demo,
 what is simulated, and how to regenerate its assets from local training data.

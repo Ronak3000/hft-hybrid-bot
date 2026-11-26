@@ -430,10 +430,22 @@ void test_randomized_operations_match_reference_book() {
 
 } // namespace
 
+void test_empty_or_one_sided_book_has_no_fabricated_midpoint() {
+    auto book = small_book();
+    CHECK(std::isnan(book.advance_tick().first));
+    CHECK(book.process_order(1, 100, 2, 0).fully_accepted());
+    CHECK(std::isnan(book.advance_tick().first));
+    CHECK(book.get_obi() == 1.0);
+    CHECK(book.process_order(2, 102, 2, 1).fully_accepted());
+    CHECK(book.advance_tick().first == 101.0);
+    CHECK(book.get_obi() == 0.0);
+}
+
 int main() {
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
     const std::vector<Test> tests = {
+        {"missing depth never fabricates a midpoint", test_empty_or_one_sided_book_has_no_fabricated_midpoint},
         {"invalid input is rejected without mutation", test_rejects_invalid_input_without_mutation},
         {"duplicate IDs preserve the original", test_duplicate_id_preserves_original_order},
         {"FIFO and partial fills", test_fifo_and_partial_fill},
